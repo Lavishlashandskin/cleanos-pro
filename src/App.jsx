@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Sun, Moon, Globe } from 'lucide-react'
+import { Sun, Moon, Globe, Home, CalendarDays, DollarSign, Users, MoreHorizontal } from 'lucide-react'
 import { PricingProvider } from './context/PricingContext.jsx'
 import { upcomingJobs as initialJobs } from './data/sampleData.js'
 
@@ -91,6 +91,29 @@ export default function App() {
         </div>
       </div>
 
+      <nav className="mobile-bottom-nav">
+        <button onClick={() => setActivePage('dashboard')} className={activePage === 'dashboard' ? 'active' : ''}>
+          <Home size={20} />
+          <span>Home</span>
+        </button>
+        <button onClick={() => setActivePage('schedule')} className={activePage === 'schedule' ? 'active' : ''}>
+          <CalendarDays size={20} />
+          <span>Schedule</span>
+        </button>
+        <button onClick={() => setActivePage('money-tracker')} className={activePage === 'money-tracker' ? 'active' : ''}>
+          <DollarSign size={20} />
+          <span>Money</span>
+        </button>
+        <button onClick={() => setActivePage('workers')} className={activePage === 'workers' ? 'active' : ''}>
+          <Users size={20} />
+          <span>Team</span>
+        </button>
+        <button onClick={() => setActivePage('settings')} className={activePage === 'settings' ? 'active' : ''}>
+          <MoreHorizontal size={20} />
+          <span>More</span>
+        </button>
+      </nav>
+
       {selectedJob && (
         <JobDetailModal
           job={selectedJob}
@@ -98,6 +121,6 @@ export default function App() {
           onSave={(updates) => { updateJob(selectedJob.id, updates); setSelectedJob(null) }}
         />
       )}
-    <div className="mobile-bottom-nav"><button onClick={()=>setActivePage("dashboard")} className={activePage==="dashboard"?"active":""}>🏠<span>Home</span></button><button onClick={()=>setActivePage("schedule")} className={activePage==="schedule"?"active":""}>📅<span>Schedule</span></button><button onClick={()=>setActivePage("money-tracker")} className={activePage==="money-tracker"?"active":""}>💰<span>Money</span></button><button onClick={()=>setActivePage("workers")} className={activePage==="workers"?"active":""}>👥<span>Team</span></button><button onClick={()=>setActivePage("settings")} className={activePage==="settings"?"active":""}>⚙️<span>More</span></button></div><div className="mobile-bottom-nav"><button onClick={()=>setActivePage("dashboard")} className={activePage==="dashboard"?"active":""}>🏠<span>Home</span></button><button onClick={()=>setActivePage("schedule")} className={activePage==="schedule"?"active":""}>📅<span>Schedule</span></button><button onClick={()=>setActivePage("money-tracker")} className={activePage==="money-tracker"?"active":""}>💰<span>Money</span></button><button onClick={()=>setActivePage("workers")} className={activePage==="workers"?"active":""}>👥<span>Team</span></button><button onClick={()=>setActivePage("settings")} className={activePage==="settings"?"active":""}>⚙️<span>More</span></button></div></PricingProvider>
+    </PricingProvider>
   )
 }
