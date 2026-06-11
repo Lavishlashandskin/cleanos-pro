@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Sun, Moon, Globe, Home, CalendarDays, DollarSign, Users, MoreHorizontal } from 'lucide-react'
 import { PricingProvider } from './context/PricingContext.jsx'
 import { upcomingJobs as initialJobs } from './data/sampleData.js'
@@ -25,11 +25,16 @@ export default function App() {
   const [portalMode, setPortalMode] = useState(false)
 
   const [theme, setTheme] = useState(() => localStorage.getItem('cleanos_theme') || 'dark')
+  const mainRef = useRef(null)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem('cleanos_theme', theme)
   }, [theme])
+
+  useEffect(() => {
+    if (mainRef.current) mainRef.current.scrollTop = 0
+  }, [activePage])
 
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark')
 
@@ -85,7 +90,7 @@ export default function App() {
               </button>
             </div>
           </header>
-          <main className="main-content">
+          <main className="main-content" ref={mainRef}>
             {renderPage()}
           </main>
         </div>
