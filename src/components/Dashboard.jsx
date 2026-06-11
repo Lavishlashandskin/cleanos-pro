@@ -1,4 +1,5 @@
-import { DollarSign, Users, CalendarCheck, TrendingUp, Gift } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { DollarSign, Users, CalendarCheck, TrendingUp, Gift, Search, X } from 'lucide-react'
 import { clients, workers, tipLog } from '../data/sampleData.js'
 
 function getClientName(job) {
@@ -26,6 +27,31 @@ function daysUntilBirthday(birthdayStr) {
 const TYPE_LABELS = { residential: 'Residential', commercial: 'Commercial', airbnb: 'Airbnb', moveout: 'Move-Out' }
 
 export default function Dashboard({ jobs = [], onJobClick }) {
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
+  const searchRef = useRef(null)
+
+  useEffect(() => {
+    const handler = e => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const q = query.toLowerCase()
+  const matchClients = query ? clients.filter(c =>
+    c.name.toLowerCase().includes(q) || c.address.toLowerCase().includes(q) || c.type.toLowerCase().includes(q)
+  ).slice(0, 4) : []
+  const matchWorkers = query ? workers.filter(w =>
+    w.name.toLowerCase().includes(q)
+  ).slice(0, 3) : []
+  const matchJobs = query ? jobs.filter(j => {
+    const name = (j.clientName || clients.find(c => c.id === j.clientId)?.name || '').toLowerCase()
+    return name.includes(q) || j.address.toLowerCase().includes(q) || j.type.toLowerCase().includes(q)
+  }).slice(0, 4) : []
+  const hasResults = matchClients.length + matchWorkers.length + matchJobs.length > 0
+
   const totalMonthly = clients.reduce((sum, c) => {
     const mult = c.frequency === 'weekly' ? 4 : c.frequency === 'biweekly' ? 2 : 1
     return sum + c.rate * mult
@@ -38,6 +64,69 @@ export default function Dashboard({ jobs = [], onJobClick }) {
 
   return (
     <div>
+      <div className="dash-search" ref={searchRef}>
+        <div className="dash-search-input-wrap">
+          <Search size={15} className="dash-search-icon" />
+          <input
+            className="dash-search-input"
+            placeholder="Search clients, workers, jobs…"
+            value={query}
+            onChange={e => { setQuery(e.target.value); setOpen(true) }}
+            onFocus={() => query && setOpen(true)}
+          />
+          {query && (
+            <button className="dash-search-clear" onClick={() => { setQuery(''); setOpen(false) }}>
+              <X size={13} />
+            </button>
+          )}
+        </div>
+
+        {open && query && (
+          <div className="dash-search-dropdown">
+            {!hasResults && (
+              <div className="dash-search-empty">No results for "{query}"</div>
+            )}
+            {matchClients.length > 0 && (
+              <>
+                <div className="dash-search-section">Clients</div>
+                {matchClients.map(c => (
+                  <div key={c.id} className="dash-search-result">
+                    <div className="dash-search-result-name">{c.name}</div>
+                    <div className="dash-search-result-sub">{c.address} · {c.frequency} · ${c.rate}/visit</div>
+                  </div>
+                ))}
+              </>
+            )}
+            {matchWorkers.length > 0 && (
+              <>
+                <div className="dash-search-section">Workers</div>
+                {matchWorkers.map(w => (
+                  <div key={w.id} className="dash-search-result">
+                    <div className="dash-search-result-name">{w.name}</div>
+                    <div className="dash-search-result-sub">{w.jobsThisMonth} jobs this month · {w.phone}</div>
+                  </div>
+                ))}
+              </>
+            )}
+            {matchJobs.length > 0 && (
+              <>
+                <div className="dash-search-section">Jobs</div>
+                {matchJobs.map(j => (
+                  <div
+                    key={j.id}
+                    className="dash-search-result clickable"
+                    onClick={() => { onJobClick?.(j); setOpen(false); setQuery('') }}
+                  >
+                    <div className="dash-search-result-name">{getClientName(j)}</div>
+                    <div className="dash-search-result-sub">{j.day} {j.time} · {j.address}</div>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
       <div className="page-header">
         <h1>Welcome back, Ashley</h1>
         <p>Here's what's happening with Reno Reset — as of today.</p>

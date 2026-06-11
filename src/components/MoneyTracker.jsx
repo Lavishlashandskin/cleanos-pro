@@ -104,21 +104,23 @@ function TipsTab() {
           )}
 
           <div className="card">
-            <div className="table-wrap">
-              <table>
-                <thead><tr><th>Date</th><th>Client</th><th>Amount</th><th>Method</th><th>Worker</th></tr></thead>
-                <tbody>
-                  {log.slice(0, 10).map(t => (
-                    <tr key={t.id}>
-                      <td>{t.date.slice(5)}</td>
-                      <td><strong>{t.clientName}</strong></td>
-                      <td><span className="text-gold font-bold">${t.amount}</span></td>
-                      <td>{t.method}</td>
-                      <td>{t.workerName}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="tip-log-scroll">
+              <div className="table-wrap">
+                <table>
+                  <thead><tr><th>Date</th><th>Client</th><th>Amount</th><th>Method</th><th>Worker</th></tr></thead>
+                  <tbody>
+                    {log.slice(0, 10).map(t => (
+                      <tr key={t.id}>
+                        <td>{t.date.slice(5)}</td>
+                        <td><strong>{t.clientName}</strong></td>
+                        <td><span className="text-gold font-bold">${t.amount}</span></td>
+                        <td>{t.method}</td>
+                        <td>{t.workerName}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
