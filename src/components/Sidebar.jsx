@@ -37,9 +37,10 @@ const NAV_MOVING = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   ]},
   { section: 'MOVING', items: [
-    { id: 'moving',     label: 'Moving Hub',  icon: Truck },
-    { id: 'schedule',   label: 'Schedule',    icon: CalendarDays },
-    { id: 'auto-comms', label: 'Auto Comms',  icon: MessageSquare },
+    { id: 'moving',            label: 'Moving Hub',       icon: Truck },
+    { id: 'schedule',          label: 'Schedule',         icon: CalendarDays },
+    { id: 'supply-calculator', label: 'Moving Checklist', icon: Package },
+    { id: 'auto-comms',        label: 'Auto Comms',       icon: MessageSquare },
   ]},
   { section: 'BUSINESS', items: [
     { id: 'money-tracker',  label: 'Money Tracker',  icon: DollarSign },
@@ -60,9 +61,10 @@ const NAV_HANDYMAN = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   ]},
   { section: 'HANDYMAN', items: [
-    { id: 'handyman',   label: 'Handyman Hub', icon: Wrench },
-    { id: 'schedule',   label: 'Schedule',     icon: CalendarDays },
-    { id: 'auto-comms', label: 'Auto Comms',   icon: MessageSquare },
+    { id: 'handyman',          label: 'Handyman Hub',    icon: Wrench },
+    { id: 'schedule',          label: 'Schedule',        icon: CalendarDays },
+    { id: 'supply-calculator', label: 'Tool & Materials', icon: Package },
+    { id: 'auto-comms',        label: 'Auto Comms',      icon: MessageSquare },
   ]},
   { section: 'BUSINESS', items: [
     { id: 'money-tracker',  label: 'Money Tracker',  icon: DollarSign },
