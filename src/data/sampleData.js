@@ -317,17 +317,17 @@ export const workers = [
 ]
 
 export const upcomingJobs = [
-  { id: 1, clientId: 1, workerId: 1, date: "2026-06-11", day: "Thu", time: "9:00 AM", duration: 3, type: "residential", status: "scheduled", address: "4821 Meadow Creek Dr" },
-  { id: 2, clientId: 5, workerId: 2, date: "2026-06-11", day: "Thu", time: "1:00 PM", duration: 2, type: "residential", status: "scheduled", address: "1740 College Pkwy #204" },
-  { id: 3, clientId: 11, workerId: 1, date: "2026-06-12", day: "Fri", time: "6:00 AM", duration: 2, type: "commercial", status: "scheduled", address: "2620 Red Rock Rd" },
-  { id: 4, clientId: 6, workerId: 3, date: "2026-06-12", day: "Fri", time: "11:30 AM", duration: 2.5, type: "residential", status: "scheduled", address: "3390 Desert Wind Dr" },
-  { id: 5, clientId: null, workerId: 2, date: "2026-06-13", day: "Sat", time: "8:00 AM", duration: 2, type: "airbnb", status: "scheduled", address: "4182 Summit Ridge Ct", clientName: "Airbnb — Summit Ridge" },
-  { id: 6, clientId: 7, workerId: 1, date: "2026-06-15", day: "Mon", time: "9:00 AM", duration: 3, type: "residential", status: "scheduled", address: "9210 Quail Ridge Dr" },
-  { id: 7, clientId: 4, workerId: 3, date: "2026-06-15", day: "Mon", time: "1:30 PM", duration: 3.5, type: "residential", status: "scheduled", address: "5560 Sage Summit Ct" },
-  { id: 8, clientId: 11, workerId: 1, date: "2026-06-16", day: "Tue", time: "6:00 AM", duration: 2, type: "commercial", status: "scheduled", address: "810 Keystone Ave (Midtown)", clientName: "Anytime Fitness — Midtown" },
-  { id: 9, clientId: 3, workerId: 2, date: "2026-06-16", day: "Tue", time: "10:00 AM", duration: 2.5, type: "residential", status: "scheduled", address: "2103 Pinecrest Rd" },
-  { id: 10, clientId: 2, workerId: 1, date: "2026-06-17", day: "Wed", time: "9:00 AM", duration: 3.5, type: "residential", status: "scheduled", address: "790 Sierra Vista Blvd" },
-  { id: 11, clientId: 8, workerId: 3, date: "2026-06-17", day: "Wed", time: "1:00 PM", duration: 2.5, type: "residential", status: "scheduled", address: "620 Lakeridge Dr" },
+  { id: 1,  clientId: 1,    workerId: 1, date: "2026-06-11", day: "Thu", time: "9:00 AM",  duration: 3,   type: "residential", status: "scheduled", address: "4821 Meadow Creek Dr",              waiverStatus: "signed", signedBy: "Jennifer Walsh" },
+  { id: 2,  clientId: 5,    workerId: 2, date: "2026-06-11", day: "Thu", time: "1:00 PM",  duration: 2,   type: "residential", status: "scheduled", address: "1740 College Pkwy #204",            waiverStatus: "sent",   signedBy: null },
+  { id: 3,  clientId: 11,   workerId: 1, date: "2026-06-12", day: "Fri", time: "6:00 AM",  duration: 2,   type: "commercial",  status: "scheduled", address: "2620 Red Rock Rd",                  waiverStatus: "signed", signedBy: "Anytime Fitness" },
+  { id: 4,  clientId: 6,    workerId: 3, date: "2026-06-12", day: "Fri", time: "11:30 AM", duration: 2.5, type: "residential", status: "scheduled", address: "3390 Desert Wind Dr",               waiverStatus: "none",   signedBy: null },
+  { id: 5,  clientId: null, workerId: 2, date: "2026-06-13", day: "Sat", time: "8:00 AM",  duration: 2,   type: "airbnb",      status: "scheduled", address: "4182 Summit Ridge Ct", clientName: "Airbnb — Summit Ridge", waiverStatus: "sent", signedBy: null },
+  { id: 6,  clientId: 7,    workerId: 1, date: "2026-06-15", day: "Mon", time: "9:00 AM",  duration: 3,   type: "residential", status: "scheduled", address: "9210 Quail Ridge Dr",               waiverStatus: "signed", signedBy: "Amanda Westbrook" },
+  { id: 7,  clientId: 4,    workerId: 3, date: "2026-06-15", day: "Mon", time: "1:30 PM",  duration: 3.5, type: "residential", status: "scheduled", address: "5560 Sage Summit Ct",               waiverStatus: "none",   signedBy: null },
+  { id: 8,  clientId: 11,   workerId: 1, date: "2026-06-16", day: "Tue", time: "6:00 AM",  duration: 2,   type: "commercial",  status: "scheduled", address: "810 Keystone Ave (Midtown)", clientName: "Anytime Fitness — Midtown", waiverStatus: "none", signedBy: null },
+  { id: 9,  clientId: 3,    workerId: 2, date: "2026-06-16", day: "Tue", time: "10:00 AM", duration: 2.5, type: "residential", status: "scheduled", address: "2103 Pinecrest Rd",                  waiverStatus: "sent",   signedBy: null },
+  { id: 10, clientId: 2,    workerId: 1, date: "2026-06-17", day: "Wed", time: "9:00 AM",  duration: 3.5, type: "residential", status: "scheduled", address: "790 Sierra Vista Blvd",             waiverStatus: "signed", signedBy: "Marcus Holloway" },
+  { id: 11, clientId: 8,    workerId: 3, date: "2026-06-17", day: "Wed", time: "1:00 PM",  duration: 2.5, type: "residential", status: "scheduled", address: "620 Lakeridge Dr",                  waiverStatus: "none",   signedBy: null },
 ]
 
 export const tipLog = [
@@ -379,6 +379,61 @@ export const revenueByType = [
 ]
 
 export const IRS_RATE = 0.70 // 2026 IRS standard mileage rate (per mile)
+
+// ─── Moving module data ───────────────────────────────────────────────────────
+export const sampleMoves = [
+  { id: 1, clientName: 'Jennifer Walsh',  email: 'j.walsh@example.com',    origin: '4821 Meadow Creek Dr, Reno NV 89519',      destination: '720 Ponderosa Dr, Sparks NV 89431',   moveDate: '2026-06-20', rooms: 5, sqft: 2400, access: 'stairs',   floors: 2, distance: 8.2,  status: 'scheduled', crew: 3, notes: 'Piano in living room. Fragile art in guest room.' },
+  { id: 2, clientName: 'Marcus Holloway', email: 'marcus.h@example.com',   origin: '790 Sierra Vista Blvd, Reno NV 89509',    destination: '1200 Galena Dr, Reno NV 89512',       moveDate: '2026-06-25', rooms: 6, sqft: 3200, access: 'elevator', floors: 1, distance: 4.8,  status: 'scheduled', crew: 4, notes: 'Pool table needs disassembly.' },
+  { id: 3, clientName: 'Tanya Okonkwo',   email: 'tanya.o@example.com',    origin: '2103 Pinecrest Rd, Reno NV 89523',        destination: '880 Sparks Blvd, Sparks NV 89434',    moveDate: '2026-06-14', rooms: 3, sqft: 1900, access: 'ground',   floors: 1, distance: 12.1, status: 'completed', crew: 2, notes: '' },
+]
+
+export const sampleMoveInventory = [
+  { id: 1,  moveId: 1, category: 'Living Room', name: 'Sectional Sofa',    size: 'xl',     qty: 1 },
+  { id: 2,  moveId: 1, category: 'Living Room', name: 'Coffee Table',      size: 'medium', qty: 1 },
+  { id: 3,  moveId: 1, category: 'Living Room', name: 'Piano (upright)',   size: 'xl',     qty: 1 },
+  { id: 4,  moveId: 1, category: 'Bedroom',     name: 'King Bed Frame',    size: 'large',  qty: 1 },
+  { id: 5,  moveId: 1, category: 'Bedroom',     name: 'Dresser',           size: 'large',  qty: 2 },
+  { id: 6,  moveId: 1, category: 'Bedroom',     name: 'Nightstand',        size: 'small',  qty: 2 },
+  { id: 7,  moveId: 1, category: 'Kitchen',     name: 'Dining Table',      size: 'large',  qty: 1 },
+  { id: 8,  moveId: 1, category: 'Kitchen',     name: 'Chairs',            size: 'small',  qty: 6 },
+  { id: 9,  moveId: 1, category: 'Boxes',       name: 'Medium boxes',      size: 'medium', qty: 20 },
+  { id: 10, moveId: 1, category: 'Boxes',       name: 'Large boxes',       size: 'large',  qty: 10 },
+  { id: 11, moveId: 2, category: 'Living Room', name: 'Sofa',              size: 'large',  qty: 1 },
+  { id: 12, moveId: 2, category: 'Living Room', name: 'Pool Table',        size: 'xl',     qty: 1 },
+  { id: 13, moveId: 2, category: 'Bedroom',     name: 'King Bed (x2)',     size: 'large',  qty: 2 },
+  { id: 14, moveId: 2, category: 'Boxes',       name: 'Boxes (mixed)',     size: 'medium', qty: 35 },
+]
+
+// ─── Handyman module data ─────────────────────────────────────────────────────
+export const sampleHandymanJobs = [
+  { id: 1, clientName: 'Jennifer Walsh',   clientId: 1, description: 'Fix leaking kitchen faucet',          type: 'plumbing',   status: 'completed', date: '2026-06-08', workerId: 1, workerName: 'Maria S.',    laborHours: 1.5, laborRate: 75, notes: 'Replaced Moen cartridge.' },
+  { id: 2, clientName: 'Marcus Holloway',  clientId: 2, description: 'Install ceiling fan — master bedroom', type: 'electrical', status: 'completed', date: '2026-06-05', workerId: 3, workerName: 'Keisha T.',   laborHours: 2,   laborRate: 85, notes: 'Client supplied fan. New bracket needed.' },
+  { id: 3, clientName: 'Amanda Westbrook', clientId: 7, description: 'Patch drywall in hallway (2 holes)',  type: 'drywall',    status: 'scheduled', date: '2026-06-18', workerId: 2, workerName: 'Destiny W.',  laborHours: 3,   laborRate: 70, notes: 'Holes from TV mount removal.' },
+  { id: 4, clientName: 'Ryan Testa',       clientId: 10,description: 'Replace caulk — 2 showers',           type: 'general',    status: 'scheduled', date: '2026-06-19', workerId: 1, workerName: 'Maria S.',    laborHours: 2.5, laborRate: 70, notes: '' },
+]
+
+export const sampleHandymanMaterials = [
+  { id: 1, jobId: 1, name: 'Moen Faucet Cartridge #1225', qty: 1, unit: 'ea',   price: 12.99 },
+  { id: 2, jobId: 1, name: "Plumber's grease",             qty: 1, unit: 'tube', price: 4.49  },
+  { id: 3, jobId: 2, name: 'Ceiling fan mounting bracket', qty: 1, unit: 'ea',   price: 8.99  },
+  { id: 4, jobId: 2, name: 'Wire connectors (pack)',        qty: 1, unit: 'pack', price: 3.49  },
+  { id: 5, jobId: 3, name: 'Drywall patch compound',        qty: 1, unit: 'qt',   price: 9.99  },
+  { id: 6, jobId: 3, name: 'Mesh drywall patch (6")',       qty: 2, unit: 'ea',   price: 4.99  },
+  { id: 7, jobId: 3, name: 'Sandpaper (120 grit)',          qty: 1, unit: 'pack', price: 6.99  },
+  { id: 8, jobId: 4, name: 'Silicone caulk (white)',        qty: 2, unit: 'tube', price: 7.49  },
+  { id: 9, jobId: 4, name: 'Caulk remover tool',            qty: 1, unit: 'ea',   price: 4.99  },
+]
+
+export const sampleWarranties = [
+  { id: 1, jobId: 1, description: 'Kitchen faucet cartridge replacement', periodDays: 365, startDate: '2026-06-08', notes: 'Moen #1225 — parts and labor' },
+  { id: 2, jobId: 2, description: 'Ceiling fan installation',             periodDays: 90,  startDate: '2026-06-05', notes: 'Labor only — fan covered by manufacturer' },
+]
+
+export const workerSkills = {
+  1: ['Tile & Grout', 'Post-Construction', 'Move-Out', 'Deep Clean', 'Organization'],
+  2: ['Airbnb Turnovers', 'Laundry & Folding', 'Organization', 'Pet-Friendly'],
+  3: ['Commercial', 'Carpet Cleaning', 'Window Washing', 'Upholstery'],
+}
 
 export const clientPaymentSettings = {
   1:  { method: 'venmo',   billingType: 'recurring',  autopay: false },

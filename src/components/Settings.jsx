@@ -1,27 +1,19 @@
 import { useState, useEffect } from 'react'
 import { Check, RotateCcw } from 'lucide-react'
 import { usePricing, DEFAULT_PRICING } from '../context/PricingContext.jsx'
+import { useService, SERVICE_CONFIG } from '../context/ServiceContext.jsx'
 
 const PriceField = ({ label, value, onChange, suffix = '/visit', prefix = '$' }) => (
   <div className="form-group" style={{ marginBottom: 0 }}>
     <label className="form-label">{label}</label>
     <div style={{ position: 'relative' }}>
-      <span style={{
-        position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
-        color: 'var(--text-muted)', fontSize: 13, pointerEvents: 'none',
-      }}>{prefix}</span>
+      <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: 13, pointerEvents: 'none' }}>{prefix}</span>
       <input
-        type="number"
-        min="0"
-        value={value}
-        onChange={e => onChange(Number(e.target.value))}
+        type="number" min="0" value={value} onChange={e => onChange(Number(e.target.value))}
         style={{ paddingLeft: 22, paddingRight: suffix ? 52 : 12 }}
       />
       {suffix && (
-        <span style={{
-          position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-          color: 'var(--text-muted)', fontSize: 12, pointerEvents: 'none',
-        }}>{suffix}</span>
+        <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: 12, pointerEvents: 'none' }}>{suffix}</span>
       )}
     </div>
   </div>
@@ -29,6 +21,7 @@ const PriceField = ({ label, value, onChange, suffix = '/visit', prefix = '$' })
 
 export default function Settings() {
   const { pricing, savePricing } = usePricing()
+  const { serviceType, setServiceType } = useService()
   const [form, setForm] = useState(pricing)
   const [saved, setSaved] = useState(false)
 
@@ -43,18 +36,35 @@ export default function Settings() {
     setTimeout(() => setSaved(false), 2500)
   }
 
-  const handleReset = () => {
-    setForm(DEFAULT_PRICING)
-  }
-
   return (
     <div>
       <div className="page-header">
-        <h1>Settings — Pricing</h1>
-        <p>Your rates. Every quote in Scope It calculates from these numbers — no more guessing.</p>
+        <h1>Settings</h1>
+        <p>Business profile, service type, and pricing — all in one place.</p>
       </div>
 
       <div style={{ maxWidth: 680 }}>
+
+        {/* Service Type */}
+        <div className="card mb-4">
+          <div className="card-title" style={{ marginBottom: 4 }}>Business Type</div>
+          <p className="text-sm text-muted mb-4">Changes which modules and tools appear in the sidebar.</p>
+          <div className="service-type-grid">
+            {Object.entries(SERVICE_CONFIG).map(([key, cfg]) => (
+              <button
+                key={key}
+                className={`service-type-btn${serviceType === key ? ' active' : ''}`}
+                onClick={() => setServiceType(key)}
+              >
+                <span style={{ fontSize: 22 }}>{cfg.icon}</span>
+                <span style={{ fontSize: 14, fontWeight: 700 }}>{cfg.label}</span>
+                <span style={{ fontSize: 11, color: serviceType === key ? 'var(--gold)' : 'var(--text-muted)' }}>
+                  {key === 'cleaning' ? 'Cleans, tips, schedules' : key === 'moving' ? 'Moves, inventory, estimates' : 'Repairs, materials, warranties'}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Standard Clean */}
         <div className="card mb-4">
@@ -73,7 +83,7 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Specialty services */}
+        {/* Specialty */}
         <div className="card mb-4">
           <div className="card-title" style={{ marginBottom: 16 }}>Specialty Service Rates</div>
           <div className="form-row">
@@ -99,16 +109,12 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Save row */}
+        {/* Save */}
         <div className="flex gap-3 items-center">
           <button className="btn btn-primary" onClick={handleSave}>
             {saved ? <><Check size={14} /> Saved!</> : 'Save Pricing'}
           </button>
-          <button
-            className="btn btn-ghost btn-sm"
-            onClick={handleReset}
-            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-          >
+          <button className="btn btn-ghost btn-sm" onClick={() => setForm(DEFAULT_PRICING)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <RotateCcw size={13} /> Reset to defaults
           </button>
           {saved && <span style={{ fontSize: 13, color: 'var(--success)' }}>Pricing saved — all quotes will update.</span>}

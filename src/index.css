@@ -818,6 +818,50 @@ td strong, td .name { color: var(--text-primary); font-weight: 500; }
   color: var(--text-muted);
 }
 
+/* ── Service type selector ────────────────────────────── */
+.service-type-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.service-type-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 18px 12px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-input);
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: center;
+}
+.service-type-btn:hover { border-color: var(--gold); background: var(--gold-glow); }
+.service-type-btn.active { border-color: var(--gold); background: var(--gold-muted); }
+
+/* ── Waiver badges ────────────────────────────────────── */
+.waiver-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 7px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0.3px;
+  border: none;
+  cursor: default;
+  font-family: inherit;
+}
+.waiver-signed { background: var(--success-bg); color: var(--success); }
+.waiver-sent   { background: var(--warning-bg); color: var(--warning); }
+.waiver-none   { background: var(--gold-muted); color: var(--gold); cursor: pointer; transition: all var(--transition); }
+.waiver-none:hover { background: var(--gold); color: #fff8ee; }
+
 /* ── Smart Booking result ─────────────────────────────── */
 .booking-suggestion {
   background: var(--gold-glow);
@@ -903,4 +947,6 @@ td strong, td .name { color: var(--text-primary); font-weight: 500; }
     max-height: 400px;
     overflow-y: auto;
   }
+
+  .service-type-grid { grid-template-columns: 1fr; }
 }

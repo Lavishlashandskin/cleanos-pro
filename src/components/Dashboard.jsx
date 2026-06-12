@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { DollarSign, Users, CalendarCheck, TrendingUp, Gift, Search, X } from 'lucide-react'
+import { DollarSign, Users, CalendarCheck, TrendingUp, Gift, Search, X, Mail, ShieldCheck, Clock } from 'lucide-react'
 import { clients, workers, tipLog } from '../data/sampleData.js'
 
 function getClientName(job) {
@@ -11,7 +11,6 @@ function getWorkerName(workerId) {
   const w = workers.find(w => w.id === workerId)
   return w ? w.name.split(' ')[0] + ' ' + w.name.split(' ')[1][0] + '.' : '—'
 }
-
 function daysSince(dateStr) {
   return Math.floor((new Date() - new Date(dateStr)) / 86400000)
 }
@@ -26,7 +25,45 @@ function daysUntilBirthday(birthdayStr) {
 
 const TYPE_LABELS = { residential: 'Residential', commercial: 'Commercial', airbnb: 'Airbnb', moveout: 'Move-Out' }
 
-export default function Dashboard({ jobs = [], onJobClick }) {
+function WaiverBadge({ job, onSendWaiver }) {
+  const { waiverStatus } = job
+
+  if (waiverStatus === 'signed') {
+    return (
+      <span className="waiver-badge waiver-signed" title={`Signed by ${job.signedBy}`}>
+        <ShieldCheck size={11} /> Signed
+      </span>
+    )
+  }
+  if (waiverStatus === 'sent') {
+    return (
+      <span className="waiver-badge waiver-sent" title="Waiver sent — awaiting signature">
+        <Clock size={11} /> Pending
+      </span>
+    )
+  }
+  // none — clickable send button
+  return (
+    <button
+      className="waiver-badge waiver-none"
+      title="Send waiver to client"
+      onClick={(e) => {
+        e.stopPropagation()
+        const client = clients.find(c => c.id === job.clientId)
+        const email   = client?.email || ''
+        const name    = getClientName(job)
+        const first   = name.split(' ')[0]
+        const body    = `Hi ${first},\n\nYour upcoming service appointment requires a signed agreement before we arrive.\n\nPlease log in to the client portal and navigate to the "Waivers" tab to review and sign.\n\nQuestions? Reply to this email or text us directly.\n\nThank you!\nReno Reset Team`
+        window.open(`mailto:${email}?subject=${encodeURIComponent('Service Agreement — Please Sign')}&body=${encodeURIComponent(body)}`)
+        onSendWaiver?.(job.id)
+      }}
+    >
+      <Mail size={11} /> Send
+    </button>
+  )
+}
+
+export default function Dashboard({ jobs = [], onJobClick, onSendWaiver }) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const searchRef = useRef(null)
@@ -57,13 +94,14 @@ export default function Dashboard({ jobs = [], onJobClick }) {
     return sum + c.rate * mult
   }, 0)
 
-  const tipsThisMonth = tipLog.filter(t => t.date.startsWith('2026-06')).reduce((s, t) => s + t.amount, 0)
-  const raiseAlerts   = clients.filter(c => daysSince(c.lastRaise) > 365)
+  const tipsThisMonth  = tipLog.filter(t => t.date.startsWith('2026-06')).reduce((s, t) => s + t.amount, 0)
+  const raiseAlerts    = clients.filter(c => daysSince(c.lastRaise) > 365)
   const birthdayAlerts = clients.filter(c => daysUntilBirthday(c.birthday) <= 14 && c.birthday)
-  const nextJobs = jobs.slice(0, 5)
+  const nextJobs       = jobs.slice(0, 5)
 
   return (
     <div>
+      {/* Global search */}
       <div className="dash-search" ref={searchRef}>
         <div className="dash-search-input-wrap">
           <Search size={15} className="dash-search-icon" />
@@ -83,9 +121,7 @@ export default function Dashboard({ jobs = [], onJobClick }) {
 
         {open && query && (
           <div className="dash-search-dropdown">
-            {!hasResults && (
-              <div className="dash-search-empty">No results for "{query}"</div>
-            )}
+            {!hasResults && <div className="dash-search-empty">No results for "{query}"</div>}
             {matchClients.length > 0 && (
               <>
                 <div className="dash-search-section">Clients</div>
@@ -163,7 +199,7 @@ export default function Dashboard({ jobs = [], onJobClick }) {
         <div className="card">
           <div className="card-header">
             <span className="card-title">Upcoming Jobs</span>
-            <span className="text-xs text-muted">Click any job for details</span>
+            <span className="text-xs text-muted">Click for details</span>
           </div>
 
           {nextJobs.map(job => (
@@ -177,7 +213,8 @@ export default function Dashboard({ jobs = [], onJobClick }) {
                 <div className="job-name">{getClientName(job)}</div>
                 <div className="job-detail">{job.address} · {TYPE_LABELS[job.type]}</div>
               </div>
-              <span className="job-worker">{getWorkerName(job.workerId)}</span>
+              <WaiverBadge job={job} onSendWaiver={onSendWaiver} />
+              <span className="job-worker" style={{ marginLeft: 4 }}>{getWorkerName(job.workerId)}</span>
             </div>
           ))}
 
@@ -219,12 +256,7 @@ export default function Dashboard({ jobs = [], onJobClick }) {
             <div className="card-header"><span className="card-title">Workers On Deck</span></div>
             {workers.map(w => (
               <div key={w.id} className="flex items-center gap-3" style={{ marginBottom: 10 }}>
-                <div style={{
-                  width: 32, height: 32, borderRadius: '50%',
-                  background: 'var(--gold)', color: '#fff8ee',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 12, fontWeight: 800, flexShrink: 0,
-                }}>
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--gold)', color: '#fff8ee', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, flexShrink: 0 }}>
                   {w.initials}
                 </div>
                 <div style={{ flex: 1 }}>

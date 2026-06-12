@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import {
   LogOut, MapPin, Clock, Camera, DollarSign, Star, Phone, Mail,
-  CheckCircle2, AlertCircle, ChevronLeft, Upload, Home, Image, Receipt, User,
+  CheckCircle2, AlertCircle, ChevronLeft, Home, Image, Receipt, User, ShieldCheck,
 } from 'lucide-react'
 import {
-  clients, upcomingJobs, samplePhotos, sampleInvoices, clientPaymentSettings,
+  clients, upcomingJobs as defaultJobs, samplePhotos, sampleInvoices, clientPaymentSettings,
 } from '../data/sampleData.js'
 
 const DEMO_PASSWORD = 'clean123'
@@ -142,8 +142,8 @@ function PortalLogin({ onLogin }) {
 }
 
 // ─── Home tab ──────────────────────────────────────────────────────────────────
-function HomeTab({ client, photos, invoices }) {
-  const nextJob  = upcomingJobs.find(j => j.clientId === client.id)
+function HomeTab({ client, photos, invoices, jobs }) {
+  const nextJob  = jobs.find(j => j.clientId === client.id)
   const lastPhoto = photos.filter(p => p.type === 'after')[0]
   const pendingAmt = invoices.filter(i => i.status !== 'paid').reduce((s, i) => s + i.amount, 0)
   const issuePhotos = photos.filter(p => p.type === 'issue')
@@ -532,18 +532,136 @@ function MyDetailsTab({ client }) {
   )
 }
 
+// ─── Waiver tab ────────────────────────────────────────────────────────────────
+const WAIVER_TEXT = `SERVICE AGREEMENT & LIABILITY WAIVER
+
+By signing below, you agree to the following terms:
+
+1. AUTHORIZATION — You authorize us to access and perform services at your property on the scheduled date(s).
+
+2. ACCESS — You agree to provide safe, reasonable access. Any known hazards (chemicals, fragile items, pets) will be disclosed prior to service.
+
+3. EXISTING CONDITIONS — We are not responsible for pre-existing damage or normal wear. Our team will note any issues found on arrival.
+
+4. LIABILITY — We carry general liability insurance. Any damage claims must be reported within 24 hours of service completion.
+
+5. CANCELLATION — 24-hour notice required to cancel or reschedule without a fee.
+
+By typing your full name and clicking "I Agree," you confirm you have read and accept these terms.`
+
+function WaiverTab({ client, jobs, onSignWaiver }) {
+  const [sigName, setSigName] = useState('')
+  const [signed, setSigned] = useState({})
+  const [error, setError] = useState('')
+
+  const pendingJobs = jobs.filter(j => j.clientId === client.id && j.waiverStatus === 'sent')
+  const signedJobs  = jobs.filter(j => j.clientId === client.id && j.waiverStatus === 'signed')
+
+  const handleSign = (job) => {
+    if (!sigName.trim()) { setError('Please type your full name to sign.'); return }
+    if (sigName.trim().toLowerCase() !== client.name.toLowerCase()) {
+      setError('Name must match your account name exactly.')
+      return
+    }
+    setError('')
+    onSignWaiver?.(job.id, sigName.trim())
+    setSigned(s => ({ ...s, [job.id]: true }))
+  }
+
+  if (pendingJobs.length === 0 && signedJobs.length === 0) {
+    return (
+      <Card style={{ textAlign: 'center', padding: '48px 24px' }}>
+        <ShieldCheck size={28} style={{ color: P.gold, opacity: 0.4, display: 'block', margin: '0 auto 12px' }} />
+        <p style={{ fontSize: 14, color: P.muted }}>No waivers pending. You're all set!</p>
+      </Card>
+    )
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {pendingJobs.map(job => (
+        <Card key={job.id} style={{ borderLeft: signed[job.id] ? `3px solid ${P.success}` : `3px solid ${P.gold}` }}>
+          {signed[job.id] ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <CheckCircle2 size={20} style={{ color: P.success, flexShrink: 0 }} />
+              <div>
+                <div style={{ fontWeight: 700, color: P.success }}>Waiver signed — thank you!</div>
+                <div style={{ fontSize: 12, color: P.muted, marginTop: 2 }}>Signed as: {sigName}</div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: P.text, marginBottom: 4 }}>
+                  Service Agreement · {job.day}, {job.date?.slice(5)} at {job.time}
+                </div>
+                <div style={{ fontSize: 13, color: P.sub }}>{job.address}</div>
+              </div>
+
+              <div style={{ background: P.bg, border: `1px solid ${P.border}`, borderRadius: 10, padding: '14px 16px', fontSize: 12, color: P.sub, lineHeight: 1.7, whiteSpace: 'pre-wrap', maxHeight: 200, overflowY: 'auto', marginBottom: 16 }}>
+                {WAIVER_TEXT}
+              </div>
+
+              <div style={{ marginBottom: 10 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: P.sub, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
+                  Type your full name to sign
+                </label>
+                <input
+                  type="text"
+                  placeholder={client.name}
+                  value={sigName}
+                  onChange={e => { setSigName(e.target.value); setError('') }}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: `1px solid ${error ? P.danger : P.border}`, background: P.bg, color: P.text, fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                  onFocus={e => e.target.style.borderColor = P.gold}
+                  onBlur={e => e.target.style.borderColor = error ? P.danger : P.border}
+                />
+                {error && <div style={{ fontSize: 12, color: P.danger, marginTop: 6 }}>{error}</div>}
+              </div>
+
+              <button
+                onClick={() => handleSign(job)}
+                style={{ padding: '11px 24px', background: P.gold, color: '#fff8ee', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 8 }}
+              >
+                <ShieldCheck size={15} /> I Agree & Sign
+              </button>
+            </>
+          )}
+        </Card>
+      ))}
+
+      {signedJobs.length > 0 && (
+        <div>
+          <SectionLabel>Previously Signed</SectionLabel>
+          {signedJobs.map(job => (
+            <Card key={job.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px' }}>
+              <CheckCircle2 size={18} style={{ color: P.success, flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: P.text }}>{job.day}, {job.date?.slice(5)} · {job.address}</div>
+                <div style={{ fontSize: 11, color: P.muted, marginTop: 2 }}>Signed by: {job.signedBy}</div>
+              </div>
+              <span style={{ padding: '3px 9px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: P.successBg, color: P.success }}>Signed</span>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Main portal dashboard ────────────────────────────────────────────────────
-function PortalDashboard({ client, onLogout }) {
+function PortalDashboard({ client, onLogout, jobs, onSignWaiver }) {
   const [tab, setTab] = useState('home')
   const photos    = samplePhotos.filter(p => p.clientId === client.id)
   const invoices  = sampleInvoices.filter(i => i.clientId === client.id)
   const payment   = clientPaymentSettings[client.id]
+  const pendingWaivers = jobs.filter(j => j.clientId === client.id && j.waiverStatus === 'sent').length
 
   const TABS = [
-    { id: 'home',     Icon: Home,    label: 'Home'    },
-    { id: 'photos',   Icon: Image,   label: 'Photos'  },
-    { id: 'invoices', Icon: Receipt, label: 'Invoices'},
-    { id: 'details',  Icon: User,    label: 'My Info' },
+    { id: 'home',     Icon: Home,         label: 'Home'    },
+    { id: 'photos',   Icon: Image,        label: 'Photos'  },
+    { id: 'invoices', Icon: Receipt,      label: 'Invoices'},
+    { id: 'waivers',  Icon: ShieldCheck,  label: 'Waivers', badge: pendingWaivers },
+    { id: 'details',  Icon: User,         label: 'My Info' },
   ]
 
   return (
@@ -574,22 +692,25 @@ function PortalDashboard({ client, onLogout }) {
         </div>
 
         {/* Tab bar */}
-        <div style={{ maxWidth: 700, margin: '0 auto', display: 'flex', borderTop: `1px solid ${P.border}` }}>
-          {TABS.map(({ id, Icon, label }) => (
+        <div style={{ maxWidth: 700, margin: '0 auto', display: 'flex', borderTop: `1px solid ${P.border}`, overflowX: 'auto' }}>
+          {TABS.map(({ id, Icon, label, badge }) => (
             <button
               key={id}
               onClick={() => setTab(id)}
               style={{
-                flex: 1, padding: '10px 4px', background: 'none', border: 'none',
+                flex: 1, minWidth: 56, padding: '10px 4px', background: 'none', border: 'none',
                 borderBottom: `2px solid ${tab === id ? P.gold : 'transparent'}`,
                 color: tab === id ? P.gold : P.muted,
-                fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                fontSize: 11, fontWeight: 600, cursor: 'pointer',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-                transition: 'all 0.12s ease', fontFamily: 'inherit',
+                transition: 'all 0.12s ease', fontFamily: 'inherit', position: 'relative',
               }}
             >
               <Icon size={16} />
               {label}
+              {badge > 0 && (
+                <span style={{ position: 'absolute', top: 6, right: '20%', width: 14, height: 14, borderRadius: '50%', background: P.gold, color: '#fff', fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{badge}</span>
+              )}
             </button>
           ))}
         </div>
@@ -597,9 +718,10 @@ function PortalDashboard({ client, onLogout }) {
 
       {/* Content */}
       <main style={{ maxWidth: 700, margin: '0 auto', padding: '20px 16px 40px' }}>
-        {tab === 'home'     && <HomeTab      client={client} photos={photos} invoices={invoices} />}
+        {tab === 'home'     && <HomeTab      client={client} photos={photos} invoices={invoices} jobs={jobs} />}
         {tab === 'photos'   && <PhotosTab    photos={photos} clientName={client.name} />}
         {tab === 'invoices' && <InvoicesTab  invoices={invoices} paymentSetting={payment} />}
+        {tab === 'waivers'  && <WaiverTab    client={client} jobs={jobs} onSignWaiver={onSignWaiver} />}
         {tab === 'details'  && <MyDetailsTab client={client} />}
       </main>
     </div>
@@ -607,12 +729,11 @@ function PortalDashboard({ client, onLogout }) {
 }
 
 // ─── Root export ──────────────────────────────────────────────────────────────
-export default function ClientPortalApp({ onExit }) {
+export default function ClientPortalApp({ onExit, jobs = defaultJobs, onSignWaiver }) {
   const [client, setClient] = useState(null)
 
   return (
     <div>
-      {/* Back to admin banner (demo only) */}
       <div style={{ position: 'fixed', bottom: 16, right: 16, zIndex: 9999 }}>
         <button
           onClick={onExit}
@@ -623,8 +744,8 @@ export default function ClientPortalApp({ onExit }) {
       </div>
 
       {!client
-        ? <PortalLogin    onLogin={setClient} />
-        : <PortalDashboard client={client} onLogout={() => setClient(null)} />
+        ? <PortalLogin onLogin={setClient} />
+        : <PortalDashboard client={client} onLogout={() => setClient(null)} jobs={jobs} onSignWaiver={onSignWaiver} />
       }
     </div>
   )
