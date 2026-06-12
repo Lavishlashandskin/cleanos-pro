@@ -5,7 +5,7 @@ import {
   Home, Building2, PlaneTakeoff, Clock, Zap, Package,
   Paintbrush, Hammer, Plug, Droplets, Layers, TreePine,
   DollarSign, Percent, Car, ArrowRight, User, Mail, Phone,
-  Link2, Key, Send, Eye, EyeOff,
+  Link2, Key, Send, Eye, EyeOff, ChevronDown, X, Bell,
 } from 'lucide-react'
 import { usePricing, DEFAULTS_BY_TYPE } from '../context/PricingContext.jsx'
 import { useService, SERVICE_CONFIG } from '../context/ServiceContext.jsx'
@@ -13,6 +13,7 @@ import { useSubscription, SUBSCRIPTION_STATES } from '../context/SubscriptionCon
 import { useLocation } from '../context/LocationContext.jsx'
 import { useProfile } from '../context/ProfileContext.jsx'
 import { isConfigured as mapsConfigured } from '../lib/googleMaps.js'
+import { workers } from '../data/sampleData.js'
 
 // ── Shared field components ───────────────────────────────────────────────────
 const PriceField = ({ label, value, onChange, suffix = '', prefix = '$', step = 1, hint }) => (
@@ -50,6 +51,54 @@ const ExampleRow = ({ label, value }) => (
     <strong style={{ color: 'var(--gold)' }}>${value}</strong>
   </div>
 )
+
+// ── Accordion ─────────────────────────────────────────────────────────────────
+function Accordion({ title, icon: Icon, iconColor = 'var(--gold)', defaultOpen = false, children, badge }) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div className="card mb-4">
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, padding: 0, textAlign: 'left' }}
+      >
+        <div style={{ width: 30, height: 30, borderRadius: 8, background: `${iconColor}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Icon size={15} style={{ color: iconColor }} />
+        </div>
+        <span style={{ fontWeight: 700, fontSize: 14, flex: 1 }}>{title}</span>
+        {badge != null && <span style={{ marginRight: 6 }}>{badge}</span>}
+        <ChevronDown
+          size={16}
+          style={{ color: 'var(--text-muted)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease', flexShrink: 0 }}
+        />
+      </button>
+      {open && (
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Integration status badge ──────────────────────────────────────────────────
+function StatusBadge({ connected }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+      <div style={{
+        width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+        background: connected ? '#22c55e22' : 'color-mix(in srgb, var(--danger) 15%, transparent)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        {connected
+          ? <Check size={11} style={{ color: '#22c55e' }} />
+          : <X size={11} style={{ color: 'var(--danger)' }} />}
+      </div>
+      <span style={{ fontSize: 12, fontWeight: 600, color: connected ? '#22c55e' : 'var(--text-muted)' }}>
+        {connected ? 'Connected' : 'Not set up'}
+      </span>
+    </div>
+  )
+}
 
 // ── Cleaning Pricing ──────────────────────────────────────────────────────────
 function CleaningPricing({ form, set, setAddOn }) {
@@ -182,7 +231,7 @@ const SPECIALTY_META = {
 }
 
 function HandymanPricing({ form, set, setNested }) {
-  const eg2hr = Math.max(form.minimumCharge, form.laborHourly * 2)
+  const eg2hr      = Math.max(form.minimumCharge, form.laborHourly * 2)
   const egEmerg2hr = Math.max(form.minimumCharge, form.emergencyRate * 2)
 
   return (
@@ -254,15 +303,13 @@ function HandymanPricing({ form, set, setNested }) {
   )
 }
 
-// ── Zone Manager ──────────────────────────────────────────────────────────────
-const PALETTE = ['#6E9E8A','#5E8FB5','#C8A040','#9B7BB0','#A86B6B','#7B9E6E','#C47D5A','#4A8FA8','#A89B4A','#7A7AB0']
-
+// ── Zone Manager (content only — accordion wrapper is in Settings) ─────────────
 function ZoneManager() {
   const { zones, businessInfo, addZone, updateZone, removeZone, setBusinessInfo } = useLocation()
   const [showForm, setShowForm] = useState(false)
-  const [bizForm, setBizForm] = useState(businessInfo)
+  const [bizForm, setBizForm]   = useState(businessInfo)
   const [bizSaved, setBizSaved] = useState(false)
-  const [zoneForm, setZoneForm] = useState({ label: '', zipsRaw: '', keywordsRaw: '', color: PALETTE[0] })
+  const [zoneForm, setZoneForm] = useState({ label: '', zipsRaw: '', keywordsRaw: '' })
 
   const handleSaveBiz = () => {
     setBusinessInfo(bizForm)
@@ -272,18 +319,27 @@ function ZoneManager() {
 
   const handleAddZone = () => {
     if (!zoneForm.label) return
-    addZone(zoneForm)
-    setZoneForm({ label: '', zipsRaw: '', keywordsRaw: '', color: PALETTE[zones.length % PALETTE.length] })
+    addZone({ ...zoneForm, workers: [] })
+    setZoneForm({ label: '', zipsRaw: '', keywordsRaw: '' })
     setShowForm(false)
   }
 
   return (
-    <div className="card mb-4">
-      <SectionHeader icon={MapPin} title="Service Zones" />
-      <p className="text-sm text-muted mb-4" style={{ marginTop: -8 }}>Jobs auto-match to zones by ZIP code or address keywords for route optimization and smart booking.</p>
+    <>
+      {/* What zones do */}
+      <div style={{ padding: '12px 14px', background: 'var(--gold-muted)', border: '1px solid var(--gold)', borderRadius: 'var(--radius)', marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
+          <MapPin size={13} style={{ color: 'var(--gold)', flexShrink: 0 }} />
+          <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--gold)' }}>What are service zones?</span>
+        </div>
+        <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
+          Zones route jobs to the right workers based on a client's address or ZIP code. When a booking comes in, CleanOS matches it to the closest zone and alerts the assigned workers — keeping your team organized by area without manual assignment.
+        </p>
+      </div>
 
-      <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '14px 16px', marginBottom: 16 }}>
-        <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Business Info</div>
+      {/* Business info for routing */}
+      <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '14px 16px', marginBottom: 20 }}>
+        <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Routing Origin</div>
         <div className="form-row">
           <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label">Business Name</label>
@@ -295,11 +351,11 @@ function ZoneManager() {
           </div>
         </div>
         <div className="form-group" style={{ marginBottom: 8, marginTop: 12 }}>
-          <label className="form-label">Base Address (your home/office — route origin)</label>
+          <label className="form-label">Base Address (route origin for distance calculations)</label>
           <input value={bizForm.baseAddress || ''} onChange={e => setBizForm(f => ({ ...f, baseAddress: e.target.value }))} placeholder="e.g. 123 Main St, Reno NV 89501" />
         </div>
         <button className="btn btn-secondary btn-sm" onClick={handleSaveBiz}>
-          {bizSaved ? <><Check size={12} /> Saved</> : 'Save Business Info'}
+          {bizSaved ? <><Check size={12} /> Saved</> : 'Save Routing Info'}
         </button>
       </div>
 
@@ -307,38 +363,82 @@ function ZoneManager() {
         <div className="alert alert-info mb-4" style={{ fontSize: 12 }}>
           <Globe size={13} />
           <div>
-            <strong>Google Maps not configured.</strong> Add <code>VITE_GOOGLE_MAPS_KEY=your_key</code> to <code>.env</code> to enable live geocoding and distance calculation.
+            <strong>Google Maps not configured.</strong> Add <code>VITE_GOOGLE_MAPS_KEY</code> to <code>.env</code> or paste your key in Integrations to enable live geocoding and distance calculation.
           </div>
         </div>
       )}
 
+      {/* Zone cards */}
       {zones.length === 0 && !showForm && (
-        <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--text-muted)', fontSize: 13 }}>No zones configured yet.</div>
+        <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: 13 }}>
+          No zones yet. Add your first zone below.
+        </div>
       )}
 
       {zones.map(z => (
-        <div key={z.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
-          <span style={{ width: 12, height: 12, borderRadius: '50%', background: z.color, flexShrink: 0 }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 700, fontSize: 13 }}>{z.label}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-              {z.zips?.length ? `ZIPs: ${z.zips.join(', ')}` : 'No ZIPs'}
-              {z.keywords?.length ? ` · Keywords: ${z.keywords.slice(0, 3).join(', ')}${z.keywords.length > 3 ? '…' : ''}` : ''}
+        <div
+          key={z.id}
+          style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '14px 16px', marginBottom: 12 }}
+        >
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>{z.label}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>
+                {z.zips?.length
+                  ? <><strong style={{ color: 'var(--text-secondary)' }}>ZIPs:</strong> {z.zips.join(', ')}</>
+                  : <em>No ZIPs configured</em>}
+              </div>
+              {z.keywords?.length > 0 && (
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                  Keywords: {z.keywords.slice(0, 4).join(', ')}{z.keywords.length > 4 ? '…' : ''}
+                </div>
+              )}
             </div>
+            <button
+              onClick={() => removeZone(z.id)}
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4, flexShrink: 0 }}
+              title="Remove zone"
+            >
+              <Trash2 size={13} />
+            </button>
           </div>
-          <div style={{ display: 'flex', gap: 4 }}>
-            {PALETTE.map(c => (
-              <button key={c} onClick={() => updateZone(z.id, { color: c })} style={{ width: 14, height: 14, borderRadius: '50%', background: c, border: z.color === c ? '2px solid var(--text-primary)' : '1px solid transparent', cursor: 'pointer' }} />
-            ))}
+
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
+              Assigned Workers
+            </div>
+            {workers.length === 0
+              ? <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>No workers found.</p>
+              : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  {workers.map(w => {
+                    const assigned = (z.workers || []).includes(w.id)
+                    return (
+                      <label key={w.id} style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer', fontSize: 13, userSelect: 'none' }}>
+                        <input
+                          type="checkbox"
+                          checked={assigned}
+                          onChange={() => {
+                            const curr = z.workers || []
+                            updateZone(z.id, { workers: assigned ? curr.filter(id => id !== w.id) : [...curr, w.id] })
+                          }}
+                          style={{ cursor: 'pointer', accentColor: 'var(--gold)', width: 14, height: 14 }}
+                        />
+                        <span style={{ color: assigned ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{w.name}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              )
+            }
           </div>
-          <button onClick={() => removeZone(z.id)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}>
-            <Trash2 size={13} />
-          </button>
         </div>
       ))}
 
+      {/* Add zone form */}
       {showForm && (
-        <div style={{ marginTop: 14, padding: '14px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+        <div style={{ marginTop: 4, padding: '14px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', marginBottom: 12 }}>
+          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12 }}>New Zone</div>
           <div className="form-row">
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Zone Name <span style={{ color: 'var(--danger)' }}>*</span></label>
@@ -349,15 +449,9 @@ function ZoneManager() {
               <input value={zoneForm.zipsRaw} onChange={e => setZoneForm(f => ({ ...f, zipsRaw: e.target.value }))} placeholder="e.g. 89523, 89519" />
             </div>
           </div>
-          <div className="form-group" style={{ marginTop: 10 }}>
+          <div className="form-group" style={{ marginTop: 10, marginBottom: 0 }}>
             <label className="form-label">Address Keywords (comma-separated)</label>
             <input value={zoneForm.keywordsRaw} onChange={e => setZoneForm(f => ({ ...f, keywordsRaw: e.target.value }))} placeholder="e.g. summit ridge, pinecrest, autumn sage" />
-          </div>
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 10 }}>
-            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Color:</span>
-            {PALETTE.map(c => (
-              <button key={c} onClick={() => setZoneForm(f => ({ ...f, color: c }))} style={{ width: 18, height: 18, borderRadius: '50%', background: c, border: zoneForm.color === c ? '2px solid var(--text-primary)' : '1px solid transparent', cursor: 'pointer' }} />
-            ))}
           </div>
           <div className="flex gap-3 mt-3">
             <button className="btn btn-primary btn-sm" disabled={!zoneForm.label} onClick={handleAddZone}><Check size={13} /> Add Zone</button>
@@ -366,10 +460,10 @@ function ZoneManager() {
         </div>
       )}
 
-      <button className="btn btn-secondary btn-sm mt-4" onClick={() => setShowForm(s => !s)}>
+      <button className="btn btn-secondary btn-sm" style={{ marginTop: 4 }} onClick={() => setShowForm(s => !s)}>
         <Plus size={13} /> Add Zone
       </button>
-    </div>
+    </>
   )
 }
 
@@ -385,11 +479,11 @@ const TYPE_SUBTITLES = {
   handyman: 'Repairs, materials, warranties',
 }
 
-// ── Business Profile ──────────────────────────────────────────────────────────
+// ── Business Profile (renders Profile + Integrations accordions) ──────────────
 function BusinessProfile() {
   const { profile, saveProfile } = useProfile()
-  const [form, setForm] = useState({ ...profile })
-  const [saved, setSaved] = useState(false)
+  const [form, setForm]     = useState({ ...profile })
+  const [saved, setSaved]   = useState(false)
   const [showSG, setShowSG] = useState(false)
   const [showMaps, setShowMaps] = useState(false)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -400,12 +494,20 @@ function BusinessProfile() {
     setTimeout(() => setSaved(false), 2500)
   }
 
+  const sgConnected    = !!form.sendgridKey
+  const mapsConnected  = !!(form.googleMapsKey || mapsConfigured())
+  const connectedCount = (sgConnected ? 1 : 0) + (mapsConnected ? 1 : 0)
+
+  const integBadge = connectedCount > 0
+    ? <span style={{ fontSize: 11, color: '#22c55e', fontWeight: 600 }}>{connectedCount} connected</span>
+    : <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>Not configured</span>
+
   return (
     <>
-      <div className="card mb-4">
-        <SectionHeader icon={User} title="Business Profile" />
-        <p className="text-sm text-muted mb-4" style={{ marginTop: -8 }}>
-          Your name and business info appear throughout the app and in client communications.
+      {/* ── Business Profile accordion ── */}
+      <Accordion title="Business Profile" icon={User} defaultOpen={true}>
+        <p className="text-sm text-muted mb-4" style={{ marginTop: -4 }}>
+          Your name and business info appear throughout the app and in all client communications.
         </p>
         <div className="form-row">
           <div className="form-group" style={{ marginBottom: 0 }}>
@@ -435,24 +537,34 @@ function BusinessProfile() {
           <label className="form-label">Website</label>
           <input type="url" value={form.website} onChange={e => set('website', e.target.value)} placeholder="https://yourbusiness.com" />
         </div>
-      </div>
+        <div className="flex gap-3 items-center mt-4">
+          <button className="btn btn-primary" onClick={handleSave}>
+            {saved ? <><Check size={14} /> Saved!</> : 'Save Profile'}
+          </button>
+          {saved && <span style={{ fontSize: 13, color: 'var(--success)' }}>Changes appear throughout the app.</span>}
+        </div>
+      </Accordion>
 
-      <div className="card mb-4">
-        <SectionHeader icon={Link2} title="Integrations" />
-        <p className="text-sm text-muted mb-4" style={{ marginTop: -8 }}>
-          API keys for email delivery and map features. Keys are stored locally in your browser.
+      {/* ── Integrations accordion ── */}
+      <Accordion title="Integrations" icon={Link2} badge={integBadge}>
+        <p className="text-sm text-muted mb-4" style={{ marginTop: -4 }}>
+          API keys for email delivery and maps. Stored locally in your browser — never sent to our servers.
         </p>
 
         {/* SendGrid */}
-        <div style={{ padding: '14px', background: 'var(--bg-input)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', marginBottom: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <Send size={14} style={{ color: 'var(--gold)' }} />
-            <span style={{ fontWeight: 700, fontSize: 13 }}>SendGrid Email</span>
-            {form.sendgridKey && <span style={{ fontSize: 11, color: 'var(--success)', fontWeight: 600 }}>● Connected</span>}
+        <div style={{ padding: '16px', background: 'var(--bg-input)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--gold)22', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Send size={13} style={{ color: 'var(--gold)' }} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 13 }}>SendGrid Email</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Real email delivery for Auto Comms</div>
+              </div>
+            </div>
+            <StatusBadge connected={sgConnected} />
           </div>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
-            When configured, Auto Comms sends real emails via SendGrid instead of opening your mail client.
-          </p>
           <div style={{ position: 'relative' }}>
             <input
               type={showSG ? 'text' : 'password'}
@@ -472,14 +584,21 @@ function BusinessProfile() {
         </div>
 
         {/* Google Maps */}
-        <div style={{ padding: '14px', background: 'var(--bg-input)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <MapPin size={14} style={{ color: 'var(--gold)' }} />
-            <span style={{ fontWeight: 700, fontSize: 13 }}>Google Maps API</span>
-            {(form.googleMapsKey || mapsConfigured()) && <span style={{ fontSize: 11, color: 'var(--success)', fontWeight: 600 }}>● Connected</span>}
+        <div style={{ padding: '16px', background: 'var(--bg-input)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--gold)22', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <MapPin size={13} style={{ color: 'var(--gold)' }} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 13 }}>Google Maps API</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Geocoding, GPS distance, route optimization</div>
+              </div>
+            </div>
+            <StatusBadge connected={mapsConnected} />
           </div>
           <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
-            Enables address autocomplete, geocoding, GPS distance, and route optimization. Also set via <code>VITE_GOOGLE_MAPS_KEY</code> in <code>.env</code>.
+            Also configurable via <code>VITE_GOOGLE_MAPS_KEY</code> in <code>.env</code>.
           </p>
           <div style={{ position: 'relative' }}>
             <input
@@ -498,14 +617,14 @@ function BusinessProfile() {
             </button>
           </div>
         </div>
-      </div>
 
-      <div className="flex gap-3 items-center mb-4">
-        <button className="btn btn-primary" onClick={handleSave}>
-          {saved ? <><Check size={14} /> Saved!</> : 'Save Profile & Integrations'}
-        </button>
-        {saved && <span style={{ fontSize: 13, color: 'var(--success)' }}>Changes will appear throughout the app.</span>}
-      </div>
+        <div className="flex gap-3 items-center">
+          <button className="btn btn-primary" onClick={handleSave}>
+            {saved ? <><Check size={14} /> Saved!</> : 'Save Integrations'}
+          </button>
+          {saved && <span style={{ fontSize: 13, color: 'var(--success)' }}>API keys updated.</span>}
+        </div>
+      </Accordion>
     </>
   )
 }
@@ -516,7 +635,6 @@ export default function Settings() {
   const { serviceType, setServiceType } = useService()
   const { state: subState, simulateFailedPayment, simulateSuspend, simulateCancel, setState: setSubState } = useSubscription()
 
-  // One form state per service type — switching types is synchronous, no intermediate render with wrong shape
   const [forms, setForms] = useState({
     cleaning: pricingAll.cleaning,
     moving:   pricingAll.moving,
@@ -524,10 +642,10 @@ export default function Settings() {
   })
   const [saved, setSaved] = useState(false)
 
-  const form = forms[serviceType]
-  const set = (key, val) => setForms(fs => ({ ...fs, [serviceType]: { ...fs[serviceType], [key]: val } }))
+  const form      = forms[serviceType]
+  const set       = (key, val) => setForms(fs => ({ ...fs, [serviceType]: { ...fs[serviceType], [key]: val } }))
   const setNested = (parent, key, val) => setForms(fs => ({ ...fs, [serviceType]: { ...fs[serviceType], [parent]: { ...(fs[serviceType][parent] || {}), [key]: val } } }))
-  const setAddOn = (key, val) => setNested('addOns', key, val)
+  const setAddOn  = (key, val) => setNested('addOns', key, val)
 
   const handleSave = () => {
     savePricingForType(serviceType, form)
@@ -544,21 +662,21 @@ export default function Settings() {
     <div>
       <div className="page-header">
         <h1>Settings</h1>
-        <p>Business profile, service type, and pricing — all in one place.</p>
+        <p>Tap a section to expand it. Business profile is a good place to start.</p>
       </div>
 
       <div style={{ maxWidth: 680 }}>
 
-        {/* Business Profile + Integrations */}
+        {/* Business Profile + Integrations (two accordions, profile open by default) */}
         <BusinessProfile />
 
-        {/* Service Type selector */}
+        {/* Service Type — always visible, not in accordion list */}
         <div className="card mb-4">
           <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Business Type</div>
           <p className="text-sm text-muted mb-4">Switches the sidebar, modules, and pricing fields for your service.</p>
           <div className="service-type-grid">
             {Object.entries(SERVICE_CONFIG).map(([key, cfg]) => {
-              const Icon = TYPE_ICONS[key]
+              const Icon   = TYPE_ICONS[key]
               const active = serviceType === key
               return (
                 <button
@@ -577,32 +695,45 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Dynamic pricing section */}
-        {serviceType === 'cleaning' && (
-          <CleaningPricing form={form} set={set} setAddOn={setAddOn} />
-        )}
-        {serviceType === 'moving' && (
-          <MovingPricing form={form} set={set} setNested={setNested} />
-        )}
-        {serviceType === 'handyman' && (
-          <HandymanPricing form={form} set={set} setNested={setNested} />
-        )}
+        {/* Pricing accordion */}
+        <Accordion
+          title={`${SERVICE_CONFIG[serviceType]?.label || 'Service'} Pricing`}
+          icon={DollarSign}
+        >
+          {serviceType === 'cleaning'  && <CleaningPricing form={form} set={set} setAddOn={setAddOn} />}
+          {serviceType === 'moving'    && <MovingPricing   form={form} set={set} setNested={setNested} />}
+          {serviceType === 'handyman'  && <HandymanPricing form={form} set={set} setNested={setNested} />}
+          <div className="flex gap-3 items-center mt-2 mb-2">
+            <button className="btn btn-primary" onClick={handleSave}>
+              {saved ? <><Check size={14} /> Saved!</> : `Save ${SERVICE_CONFIG[serviceType].label} Pricing`}
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={handleReset} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <RotateCcw size={13} /> Reset to defaults
+            </button>
+            {saved && <span style={{ fontSize: 13, color: 'var(--success)' }}>Pricing saved — quotes will update.</span>}
+          </div>
+        </Accordion>
 
-        {/* Service Zones */}
-        <ZoneManager />
+        {/* Service Zones accordion */}
+        <Accordion title="Service Zones" icon={MapPin}>
+          <ZoneManager />
+        </Accordion>
 
-        {/* Save / reset */}
-        <div className="flex gap-3 items-center mb-4">
-          <button className="btn btn-primary" onClick={handleSave}>
-            {saved ? <><Check size={14} /> Saved!</> : `Save ${SERVICE_CONFIG[serviceType].label} Pricing`}
-          </button>
-          <button className="btn btn-ghost btn-sm" onClick={handleReset} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <RotateCcw size={13} /> Reset to defaults
-          </button>
-          {saved && <span style={{ fontSize: 13, color: 'var(--success)' }}>Pricing saved — quotes will update.</span>}
-        </div>
+        {/* Notifications accordion */}
+        <Accordion title="Notifications" icon={Bell}>
+          <p className="text-sm text-muted" style={{ marginTop: -4 }}>
+            Configure when and how you get alerts — booking requests, job reminders, payment failures, and worker updates.
+          </p>
+          <div style={{ padding: '20px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', textAlign: 'center', marginTop: 12 }}>
+            <Bell size={24} style={{ color: 'var(--gold)', opacity: 0.4, margin: '0 auto 10px', display: 'block' }} />
+            <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>Notification settings coming soon</div>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
+              Push notifications, email digests, and SMS alerts are on the roadmap.
+            </p>
+          </div>
+        </Accordion>
 
-        {/* Subscription */}
+        {/* Subscription — always visible */}
         <div className="card mb-4">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <CreditCard size={14} style={{ color: 'var(--gold)' }} />
