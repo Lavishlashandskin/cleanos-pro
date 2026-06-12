@@ -105,7 +105,7 @@ export default function Sidebar({ activePage, onNavigate }) {
           <div>
             <div className="logo-name">CleanOS Pro</div>
             <div className="logo-sub" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span>{cfg.icon}</span>
+              <cfg.Icon size={11} />
               <span>{cfg.label} Mode</span>
             </div>
           </div>

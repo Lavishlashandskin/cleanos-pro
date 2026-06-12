@@ -1,11 +1,12 @@
 import { createContext, useContext, useState } from 'react'
+import { Sparkles, Truck, Wrench } from 'lucide-react'
 
 const ServiceContext = createContext()
 
 export const SERVICE_CONFIG = {
-  cleaning: { label: 'Cleaning', icon: '🧹', jobLabel: 'Clean', workerLabel: 'Cleaner', jobsLabel: 'Cleans' },
-  moving:   { label: 'Moving',   icon: '📦', jobLabel: 'Move',  workerLabel: 'Mover',   jobsLabel: 'Moves'  },
-  handyman: { label: 'Handyman', icon: '🔧', jobLabel: 'Job',   workerLabel: 'Tech',    jobsLabel: 'Jobs'   },
+  cleaning: { label: 'Cleaning', icon: '🧹', Icon: Sparkles, jobLabel: 'Clean', workerLabel: 'Cleaner', jobsLabel: 'Cleans' },
+  moving:   { label: 'Moving',   icon: '📦', Icon: Truck,    jobLabel: 'Move',  workerLabel: 'Mover',   jobsLabel: 'Moves'  },
+  handyman: { label: 'Handyman', icon: '🔧', Icon: Wrench,   jobLabel: 'Job',   workerLabel: 'Tech',    jobsLabel: 'Jobs'   },
 }
 
 export function ServiceProvider({ children }) {
