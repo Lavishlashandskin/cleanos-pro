@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Check, RotateCcw } from 'lucide-react'
+import { Check, RotateCcw, AlertTriangle, CreditCard, ShieldCheck } from 'lucide-react'
 import { usePricing, DEFAULT_PRICING } from '../context/PricingContext.jsx'
 import { useService, SERVICE_CONFIG } from '../context/ServiceContext.jsx'
+import { useSubscription, SUBSCRIPTION_STATES } from '../context/SubscriptionContext.jsx'
 
 const PriceField = ({ label, value, onChange, suffix = '/visit', prefix = '$' }) => (
   <div className="form-group" style={{ marginBottom: 0 }}>
@@ -22,6 +23,7 @@ const PriceField = ({ label, value, onChange, suffix = '/visit', prefix = '$' })
 export default function Settings() {
   const { pricing, savePricing } = usePricing()
   const { serviceType, setServiceType } = useService()
+  const { state: subState, simulateFailedPayment, simulateSuspend, simulateCancel, setState: setSubState } = useSubscription()
   const [form, setForm] = useState(pricing)
   const [saved, setSaved] = useState(false)
 
@@ -110,7 +112,7 @@ export default function Settings() {
         </div>
 
         {/* Save */}
-        <div className="flex gap-3 items-center">
+        <div className="flex gap-3 items-center mb-4">
           <button className="btn btn-primary" onClick={handleSave}>
             {saved ? <><Check size={14} /> Saved!</> : 'Save Pricing'}
           </button>
@@ -118,6 +120,46 @@ export default function Settings() {
             <RotateCcw size={13} /> Reset to defaults
           </button>
           {saved && <span style={{ fontSize: 13, color: 'var(--success)' }}>Pricing saved — all quotes will update.</span>}
+        </div>
+
+        {/* Subscription */}
+        <div className="card mb-4">
+          <div className="card-title" style={{ marginBottom: 4 }}>Subscription Status</div>
+          <p className="text-sm text-muted mb-4">
+            Current plan: <strong>CleanOS Pro</strong> · $49/month ·{' '}
+            <span style={{ color: subState === 'active' ? 'var(--success)' : 'var(--danger)', fontWeight: 700, textTransform: 'capitalize' }}>
+              {SUBSCRIPTION_STATES[subState]?.label || subState}
+            </span>
+          </p>
+
+          <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 14, marginBottom: 14, fontSize: 13 }}>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 6, alignItems: 'center' }}>
+              <ShieldCheck size={14} style={{ color: 'var(--success)' }} />
+              <strong>Data Retention Policy</strong>
+            </div>
+            <p className="text-sm text-muted" style={{ lineHeight: 1.6 }}>
+              Your data is <strong>never deleted</strong> without your explicit request. Cancelled accounts retain all data for a minimum of 24 months. Suspended accounts remain in read-only mode with full data intact. You can reactivate at any time.
+            </p>
+          </div>
+
+          {/* Demo subscription state simulator */}
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}>
+            <div className="text-xs text-muted mb-3" style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Demo: Simulate Subscription State</div>
+            <div className="flex gap-2" style={{ flexWrap: 'wrap' }}>
+              <button className="btn btn-secondary btn-sm" onClick={() => setSubState('active')}>
+                <Check size={12} /> Active
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={simulateFailedPayment} style={{ borderColor: '#D4B86A', color: '#9A7020' }}>
+                <AlertTriangle size={12} /> Simulate Payment Failure
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={simulateSuspend} style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }}>
+                <AlertTriangle size={12} /> Simulate Suspension
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={simulateCancel}>
+                Cancel Account
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

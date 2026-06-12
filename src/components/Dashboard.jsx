@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { DollarSign, Users, CalendarCheck, TrendingUp, Gift, Search, X, Mail, ShieldCheck, Clock } from 'lucide-react'
+import { DollarSign, Users, CalendarCheck, TrendingUp, Gift, Search, X, Mail, ShieldCheck, Clock, Bell, MessageSquare } from 'lucide-react'
 import { clients, workers, tipLog } from '../data/sampleData.js'
 
 function getClientName(job) {
@@ -27,7 +27,6 @@ const TYPE_LABELS = { residential: 'Residential', commercial: 'Commercial', airb
 
 function WaiverBadge({ job, onSendWaiver }) {
   const { waiverStatus } = job
-
   if (waiverStatus === 'signed') {
     return (
       <span className="waiver-badge waiver-signed" title={`Signed by ${job.signedBy}`}>
@@ -42,7 +41,6 @@ function WaiverBadge({ job, onSendWaiver }) {
       </span>
     )
   }
-  // none — clickable send button
   return (
     <button
       className="waiver-badge waiver-none"
@@ -50,10 +48,10 @@ function WaiverBadge({ job, onSendWaiver }) {
       onClick={(e) => {
         e.stopPropagation()
         const client = clients.find(c => c.id === job.clientId)
-        const email   = client?.email || ''
-        const name    = getClientName(job)
-        const first   = name.split(' ')[0]
-        const body    = `Hi ${first},\n\nYour upcoming service appointment requires a signed agreement before we arrive.\n\nPlease log in to the client portal and navigate to the "Waivers" tab to review and sign.\n\nQuestions? Reply to this email or text us directly.\n\nThank you!\nReno Reset Team`
+        const email  = client?.email || ''
+        const name   = getClientName(job)
+        const first  = name.split(' ')[0]
+        const body   = `Hi ${first},\n\nYour upcoming service appointment requires a signed agreement before we arrive.\n\nPlease log in to the client portal and navigate to the "Waivers" tab to review and sign.\n\nThank you!\nReno Reset Team`
         window.open(`mailto:${email}?subject=${encodeURIComponent('Service Agreement — Please Sign')}&body=${encodeURIComponent(body)}`)
         onSendWaiver?.(job.id)
       }}
@@ -65,8 +63,8 @@ function WaiverBadge({ job, onSendWaiver }) {
 
 export default function Dashboard({ jobs = [], onJobClick, onSendWaiver }) {
   const [query, setQuery] = useState('')
-  const [open, setOpen] = useState(false)
-  const searchRef = useRef(null)
+  const [open, setOpen]   = useState(false)
+  const searchRef         = useRef(null)
 
   useEffect(() => {
     const handler = e => {
@@ -80,9 +78,7 @@ export default function Dashboard({ jobs = [], onJobClick, onSendWaiver }) {
   const matchClients = query ? clients.filter(c =>
     c.name.toLowerCase().includes(q) || c.address.toLowerCase().includes(q) || c.type.toLowerCase().includes(q)
   ).slice(0, 4) : []
-  const matchWorkers = query ? workers.filter(w =>
-    w.name.toLowerCase().includes(q)
-  ).slice(0, 3) : []
+  const matchWorkers = query ? workers.filter(w => w.name.toLowerCase().includes(q)).slice(0, 3) : []
   const matchJobs = query ? jobs.filter(j => {
     const name = (j.clientName || clients.find(c => c.id === j.clientId)?.name || '').toLowerCase()
     return name.includes(q) || j.address.toLowerCase().includes(q) || j.type.toLowerCase().includes(q)
@@ -93,11 +89,21 @@ export default function Dashboard({ jobs = [], onJobClick, onSendWaiver }) {
     const mult = c.frequency === 'weekly' ? 4 : c.frequency === 'biweekly' ? 2 : 1
     return sum + c.rate * mult
   }, 0)
-
   const tipsThisMonth  = tipLog.filter(t => t.date.startsWith('2026-06')).reduce((s, t) => s + t.amount, 0)
   const raiseAlerts    = clients.filter(c => daysSince(c.lastRaise) > 365)
   const birthdayAlerts = clients.filter(c => daysUntilBirthday(c.birthday) <= 14 && c.birthday)
-  const nextJobs       = jobs.slice(0, 5)
+
+  // Comms due today
+  const TODAY    = '2026-06-12'
+  const TOMORROW = '2026-06-13'
+  const commsDue = jobs.filter(j =>
+    (j.date === TODAY || j.date === TOMORROW) &&
+    j.status !== 'completed' &&
+    j.commsLog?.reminder !== 'sent'
+  )
+  const reviewsDue = jobs.filter(j => j.status === 'completed' && j.commsLog?.review !== 'sent')
+
+  const nextJobs = jobs.slice(0, 5)
 
   return (
     <div>
@@ -148,11 +154,7 @@ export default function Dashboard({ jobs = [], onJobClick, onSendWaiver }) {
               <>
                 <div className="dash-search-section">Jobs</div>
                 {matchJobs.map(j => (
-                  <div
-                    key={j.id}
-                    className="dash-search-result clickable"
-                    onClick={() => { onJobClick?.(j); setOpen(false); setQuery('') }}
-                  >
+                  <div key={j.id} className="dash-search-result clickable" onClick={() => { onJobClick?.(j); setOpen(false); setQuery('') }}>
                     <div className="dash-search-result-name">{getClientName(j)}</div>
                     <div className="dash-search-result-sub">{j.day} {j.time} · {j.address}</div>
                   </div>
@@ -203,11 +205,7 @@ export default function Dashboard({ jobs = [], onJobClick, onSendWaiver }) {
           </div>
 
           {nextJobs.map(job => (
-            <div
-              key={job.id}
-              className="job-row clickable"
-              onClick={() => onJobClick?.(job)}
-            >
+            <div key={job.id} className="job-row clickable" onClick={() => onJobClick?.(job)}>
               <div className="job-time">{job.time}</div>
               <div className="job-info">
                 <div className="job-name">{getClientName(job)}</div>
@@ -226,6 +224,37 @@ export default function Dashboard({ jobs = [], onJobClick, onSendWaiver }) {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* Comms due card */}
+          {(commsDue.length > 0 || reviewsDue.length > 0) && (
+            <div className="card" style={{ borderLeft: '3px solid var(--gold)' }}>
+              <div className="card-header">
+                <span className="card-title">
+                  <MessageSquare size={13} style={{ display: 'inline', marginRight: 5, color: 'var(--gold)' }} />
+                  Comms Due
+                </span>
+                <span style={{ fontSize: 11, background: 'var(--gold)', color: '#fff8ee', borderRadius: 10, padding: '1px 7px', fontWeight: 700 }}>
+                  {commsDue.length + reviewsDue.length}
+                </span>
+              </div>
+              {commsDue.length > 0 && (
+                <div className="alert alert-warning" style={{ marginBottom: 8 }}>
+                  <Bell size={13} />
+                  <div>
+                    <strong>{commsDue.length} reminder{commsDue.length !== 1 ? 's' : ''} due</strong> — {commsDue.map(j => getClientName(j).split(' ')[0]).join(', ')}
+                  </div>
+                </div>
+              )}
+              {reviewsDue.length > 0 && (
+                <div className="alert alert-info" style={{ marginBottom: 0 }}>
+                  <MessageSquare size={13} />
+                  <div>
+                    <strong>{reviewsDue.length} review request{reviewsDue.length !== 1 ? 's' : ''} ready</strong> to send after completed jobs.
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="card">
             <div className="card-header"><span className="card-title">Action Required</span></div>
 

@@ -7,7 +7,13 @@
       "Read(//opt/**)",
       "Bash(~/.local/bin/npm run *)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/)",
-      "Bash(node -e \"const { CalendarPlus, Map, Lightbulb, ChevronRight } = require\\('./node_modules/lucide-react'\\); console.log\\('icons ok:', [CalendarPlus, Map, Lightbulb, ChevronRight].map\\(i => typeof i\\)\\)\")"
+      "Bash(node -e \"const { CalendarPlus, Map, Lightbulb, ChevronRight } = require\\('./node_modules/lucide-react'\\); console.log\\('icons ok:', [CalendarPlus, Map, Lightbulb, ChevronRight].map\\(i => typeof i\\)\\)\")",
+      "Bash(npm run *)",
+      "Bash(git add *)",
+      "Bash(git rm *)",
+      "Bash(git commit -m ' *)",
+      "Bash(npx vercel *)",
+      "Bash(git push *)"
     ]
   }
 }

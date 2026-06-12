@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState } from 'react'
 import {
   LayoutDashboard, Sparkles, MessageSquareWarning, CalendarDays,
   Package, DollarSign, Users, Heart, BarChart3, Zap, Settings,
-  CreditCard, Menu, X, Truck, Wrench,
-} from 'lucide-react';
-import { useService, SERVICE_CONFIG } from '../context/ServiceContext.jsx';
+  CreditCard, Menu, X, Truck, Wrench, MessageSquare, FileText,
+} from 'lucide-react'
+import { useService, SERVICE_CONFIG } from '../context/ServiceContext.jsx'
 
 const NAV_CLEANING = [
   { section: 'OVERVIEW', items: [
@@ -15,13 +15,15 @@ const NAV_CLEANING = [
     { id: 'complaint-handler', label: 'Complaint Handler', icon: MessageSquareWarning },
     { id: 'schedule',          label: 'Smart Schedule',    icon: CalendarDays },
     { id: 'supply-calculator', label: 'Supply Calculator', icon: Package },
+    { id: 'auto-comms',        label: 'Auto Comms',        icon: MessageSquare },
   ]},
   { section: 'BUSINESS', items: [
-    { id: 'money-tracker', label: 'Money Tracker',      icon: DollarSign },
-    { id: 'payments',      label: 'Payments',           icon: CreditCard },
-    { id: 'workers',       label: 'Workers',            icon: Users },
-    { id: 'clients',       label: 'Client Experience',  icon: Heart },
-    { id: 'analytics',     label: 'Analytics',          icon: BarChart3 },
+    { id: 'money-tracker',    label: 'Money Tracker',      icon: DollarSign },
+    { id: 'payments',         label: 'Payments',           icon: CreditCard },
+    { id: 'workers',          label: 'Workers',            icon: Users },
+    { id: 'clients',          label: 'Client Experience',  icon: Heart },
+    { id: 'analytics',        label: 'Analytics',          icon: BarChart3 },
+    { id: 'contractor-tax',   label: '1099 Tracking',      icon: FileText },
   ]},
   { section: 'SYSTEM', items: [
     { id: 'settings', label: 'Pricing & Settings', icon: Settings },
@@ -33,15 +35,17 @@ const NAV_MOVING = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   ]},
   { section: 'MOVING', items: [
-    { id: 'moving',   label: 'Moving Hub', icon: Truck },
-    { id: 'schedule', label: 'Schedule',   icon: CalendarDays },
+    { id: 'moving',     label: 'Moving Hub',  icon: Truck },
+    { id: 'schedule',   label: 'Schedule',    icon: CalendarDays },
+    { id: 'auto-comms', label: 'Auto Comms',  icon: MessageSquare },
   ]},
   { section: 'BUSINESS', items: [
-    { id: 'money-tracker', label: 'Money Tracker', icon: DollarSign },
-    { id: 'payments',      label: 'Payments',      icon: CreditCard },
-    { id: 'workers',       label: 'Workers',        icon: Users },
-    { id: 'clients',       label: 'Clients',        icon: Heart },
-    { id: 'analytics',     label: 'Analytics',      icon: BarChart3 },
+    { id: 'money-tracker',  label: 'Money Tracker',  icon: DollarSign },
+    { id: 'payments',       label: 'Payments',       icon: CreditCard },
+    { id: 'workers',        label: 'Workers',        icon: Users },
+    { id: 'clients',        label: 'Clients',        icon: Heart },
+    { id: 'analytics',      label: 'Analytics',      icon: BarChart3 },
+    { id: 'contractor-tax', label: '1099 Tracking',  icon: FileText },
   ]},
   { section: 'SYSTEM', items: [
     { id: 'settings', label: 'Settings', icon: Settings },
@@ -53,15 +57,17 @@ const NAV_HANDYMAN = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   ]},
   { section: 'HANDYMAN', items: [
-    { id: 'handyman', label: 'Handyman Hub', icon: Wrench },
-    { id: 'schedule', label: 'Schedule',     icon: CalendarDays },
+    { id: 'handyman',   label: 'Handyman Hub', icon: Wrench },
+    { id: 'schedule',   label: 'Schedule',     icon: CalendarDays },
+    { id: 'auto-comms', label: 'Auto Comms',   icon: MessageSquare },
   ]},
   { section: 'BUSINESS', items: [
-    { id: 'money-tracker', label: 'Money Tracker', icon: DollarSign },
-    { id: 'payments',      label: 'Payments',      icon: CreditCard },
-    { id: 'workers',       label: 'Workers',        icon: Users },
-    { id: 'clients',       label: 'Clients',        icon: Heart },
-    { id: 'analytics',     label: 'Analytics',      icon: BarChart3 },
+    { id: 'money-tracker',  label: 'Money Tracker',  icon: DollarSign },
+    { id: 'payments',       label: 'Payments',       icon: CreditCard },
+    { id: 'workers',        label: 'Workers',        icon: Users },
+    { id: 'clients',        label: 'Clients',        icon: Heart },
+    { id: 'analytics',      label: 'Analytics',      icon: BarChart3 },
+    { id: 'contractor-tax', label: '1099 Tracking',  icon: FileText },
   ]},
   { section: 'SYSTEM', items: [
     { id: 'settings', label: 'Settings', icon: Settings },
@@ -71,10 +77,10 @@ const NAV_HANDYMAN = [
 const NAV_BY_TYPE = { cleaning: NAV_CLEANING, moving: NAV_MOVING, handyman: NAV_HANDYMAN }
 
 export default function Sidebar({ activePage, onNavigate }) {
-  const [open, setOpen] = useState(false);
-  const { serviceType } = useService();
-  const nav = NAV_BY_TYPE[serviceType] || NAV_CLEANING;
-  const cfg = SERVICE_CONFIG[serviceType];
+  const [open, setOpen] = useState(false)
+  const { serviceType } = useService()
+  const nav = NAV_BY_TYPE[serviceType] || NAV_CLEANING
+  const cfg = SERVICE_CONFIG[serviceType]
 
   return (
     <>
@@ -110,7 +116,7 @@ export default function Sidebar({ activePage, onNavigate }) {
                 <button
                   key={id}
                   className={`nav-item${activePage === id ? ' active' : ''}`}
-                  onClick={() => { onNavigate(id); setOpen(false); }}
+                  onClick={() => { onNavigate(id); setOpen(false) }}
                 >
                   <Icon size={15} />
                   {label}
@@ -131,5 +137,5 @@ export default function Sidebar({ activePage, onNavigate }) {
         </div>
       </aside>
     </>
-  );
+  )
 }
