@@ -5,6 +5,7 @@ import {
   CreditCard, Menu, X, Truck, Wrench, MessageSquare, FileText, Car,
 } from 'lucide-react'
 import { useService, SERVICE_CONFIG } from '../context/ServiceContext.jsx'
+import { useProfile } from '../context/ProfileContext.jsx'
 
 const NAV_CLEANING = [
   { section: 'OVERVIEW', items: [
@@ -82,6 +83,7 @@ const NAV_BY_TYPE = { cleaning: NAV_CLEANING, moving: NAV_MOVING, handyman: NAV_
 export default function Sidebar({ activePage, onNavigate }) {
   const [open, setOpen] = useState(false)
   const { serviceType } = useService()
+  const { profile } = useProfile()
   const nav = NAV_BY_TYPE[serviceType] || NAV_CLEANING
   const cfg = SERVICE_CONFIG[serviceType]
 
@@ -133,8 +135,8 @@ export default function Sidebar({ activePage, onNavigate }) {
           <div className="user-row">
             <div className="user-avatar">A</div>
             <div>
-              <div className="user-name">Ashley</div>
-              <div className="user-role">Owner · CEO</div>
+              <div className="user-name">{profile.ownerName}</div>
+              <div className="user-role">{profile.ownerRole}</div>
             </div>
           </div>
         </div>

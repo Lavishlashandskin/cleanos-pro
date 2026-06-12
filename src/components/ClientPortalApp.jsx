@@ -2,10 +2,12 @@ import { useState } from 'react'
 import {
   LogOut, MapPin, Clock, Camera, DollarSign, Star, Phone, Mail,
   CheckCircle2, AlertCircle, ChevronLeft, Home, Image, Receipt, User, ShieldCheck,
+  CalendarDays, Edit3, Save, X, CreditCard,
 } from 'lucide-react'
 import {
   clients, upcomingJobs as defaultJobs, samplePhotos, sampleInvoices, clientPaymentSettings,
 } from '../data/sampleData.js'
+import { getStoredProfile } from '../context/ProfileContext.jsx'
 
 const DEMO_PASSWORD = 'clean123'
 
@@ -48,6 +50,8 @@ function SectionLabel({ children }) {
 
 // ─── Login ─────────────────────────────────────────────────────────────────────
 function PortalLogin({ onLogin }) {
+  const profile = getStoredProfile()
+  const biz = profile.businessName || 'CleanOS'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -79,7 +83,7 @@ function PortalLogin({ onLogin }) {
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{ width: 52, height: 52, background: P.gold, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', fontSize: 22, color: '#fff8ee' }}>✦</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: P.text, letterSpacing: -0.3 }}>Reno Reset</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: P.text, letterSpacing: -0.3 }}>{biz}</div>
           <div style={{ fontSize: 13, color: P.muted, marginTop: 2 }}>Client Portal</div>
         </div>
 
@@ -238,12 +242,16 @@ function HomeTab({ client, photos, invoices, jobs }) {
       {/* Contact */}
       <Card>
         <SectionLabel>Questions? Reach Us</SectionLabel>
-        <a href="tel:+17755550100" style={{ display: 'flex', alignItems: 'center', gap: 10, color: P.text, textDecoration: 'none', marginBottom: 10, fontSize: 14 }}>
-          <Phone size={16} style={{ color: P.gold }} /> (775) 555-0100
-        </a>
-        <a href="mailto:hello@renoreset.com" style={{ display: 'flex', alignItems: 'center', gap: 10, color: P.text, textDecoration: 'none', fontSize: 14 }}>
-          <Mail size={16} style={{ color: P.gold }} /> hello@renoreset.com
-        </a>
+        {(() => {
+          const p = getStoredProfile()
+          return (
+            <>
+              {p.phone && <a href={`tel:${p.phone}`} style={{ display: 'flex', alignItems: 'center', gap: 10, color: P.text, textDecoration: 'none', marginBottom: 10, fontSize: 14 }}><Phone size={16} style={{ color: P.gold }} /> {p.phone}</a>}
+              {p.email && <a href={`mailto:${p.email}`} style={{ display: 'flex', alignItems: 'center', gap: 10, color: P.text, textDecoration: 'none', fontSize: 14 }}><Mail size={16} style={{ color: P.gold }} /> {p.email}</a>}
+              {!p.phone && !p.email && <p style={{ fontSize: 13, color: P.muted }}>Contact info not configured. Ask your service provider.</p>}
+            </>
+          )
+        })()}
       </Card>
     </div>
   )
@@ -409,11 +417,19 @@ function InvoicesTab({ invoices, paymentSetting }) {
 
 // ─── My Details tab ────────────────────────────────────────────────────────────
 function MyDetailsTab({ client }) {
+  const profile = getStoredProfile()
+  const biz = profile.businessName || 'us'
+  const contactPhone = profile.phone || ''
+  const contactEmail = profile.email || ''
+
   const [rating, setRating] = useState(0)
   const [hover, setHover] = useState(0)
   const [reviewText, setReviewText] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [contactForm, setContactForm] = useState({ name: client.name, email: client.email, phone: client.phone || '', notes: client.notes || '' })
+  const [contactSaved, setContactSaved] = useState(false)
 
   const handleReview = async () => {
     if (!rating) return
@@ -423,39 +439,102 @@ function MyDetailsTab({ client }) {
     setSubmitting(false)
   }
 
+  const handleSaveContact = async () => {
+    await new Promise(r => setTimeout(r, 600))
+    setContactSaved(true)
+    setEditing(false)
+    setTimeout(() => setContactSaved(false), 3000)
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Profile */}
       <Card>
-        <SectionLabel>Your Profile</SectionLabel>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {[
-            { label: 'Name',    val: client.name },
-            { label: 'Email',   val: client.email },
-            { label: 'Phone',   val: client.phone },
-            { label: 'Address', val: `${client.address}, ${client.city}` },
-          ].map(f => (
-            <div key={f.label} style={{ display: 'flex', gap: 12, paddingBottom: 12, borderBottom: `1px solid ${P.border}` }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: P.muted, width: 70, flexShrink: 0, paddingTop: 2, textTransform: 'uppercase', letterSpacing: 0.4 }}>{f.label}</div>
-              <div style={{ fontSize: 14, color: P.text, flex: 1 }}>{f.val}</div>
-            </div>
-          ))}
-          <div style={{ display: 'flex', gap: 12 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: P.muted, width: 70, flexShrink: 0, paddingTop: 2, textTransform: 'uppercase', letterSpacing: 0.4 }}>Size</div>
-            <div style={{ fontSize: 14, color: P.text }}>{client.bedrooms}bd / {client.bathrooms}ba · ~{client.sqft?.toLocaleString()} sq ft</div>
-          </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <SectionLabel>Your Profile</SectionLabel>
+          <button
+            onClick={() => setEditing(e => !e)}
+            style={{ background: 'none', border: `1px solid ${P.border}`, borderRadius: 8, padding: '5px 10px', fontSize: 12, color: P.sub, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'inherit' }}
+          >
+            {editing ? <><X size={12} /> Cancel</> : <><Edit3 size={12} /> Edit</>}
+          </button>
         </div>
+
+        {contactSaved && (
+          <div style={{ background: P.successBg, border: `1px solid ${P.success}30`, borderRadius: 8, padding: '8px 12px', fontSize: 13, color: P.success, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <CheckCircle2 size={14} /> Contact info update requested — we'll confirm shortly.
+          </div>
+        )}
+
+        {editing ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[
+              { key: 'name',  label: 'Name',  type: 'text'  },
+              { key: 'email', label: 'Email', type: 'email' },
+              { key: 'phone', label: 'Phone', type: 'tel'   },
+            ].map(f => (
+              <div key={f.key}>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: P.muted, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 5 }}>{f.label}</label>
+                <input
+                  type={f.type}
+                  value={contactForm[f.key]}
+                  onChange={e => setContactForm(c => ({ ...c, [f.key]: e.target.value }))}
+                  style={{ width: '100%', padding: '9px 11px', borderRadius: 8, border: `1px solid ${P.border}`, background: P.bg, color: P.text, fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+                  onFocus={e => e.target.style.borderColor = P.gold}
+                  onBlur={e => e.target.style.borderColor = P.border}
+                />
+              </div>
+            ))}
+            <div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: P.muted, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 5 }}>Special Instructions / Notes</label>
+              <textarea
+                rows={3}
+                value={contactForm.notes}
+                onChange={e => setContactForm(c => ({ ...c, notes: e.target.value }))}
+                style={{ width: '100%', padding: '9px 11px', borderRadius: 8, border: `1px solid ${P.border}`, background: P.bg, color: P.text, fontSize: 14, fontFamily: 'inherit', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }}
+                onFocus={e => e.target.style.borderColor = P.gold}
+                onBlur={e => e.target.style.borderColor = P.border}
+              />
+            </div>
+            <button
+              onClick={handleSaveContact}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 18px', background: P.gold, color: '#fff8ee', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              <Save size={14} /> Submit Update Request
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[
+              { label: 'Name',    val: contactForm.name },
+              { label: 'Email',   val: contactForm.email },
+              { label: 'Phone',   val: contactForm.phone },
+              { label: 'Address', val: `${client.address}, ${client.city}` },
+            ].map(f => (
+              <div key={f.label} style={{ display: 'flex', gap: 12, paddingBottom: 12, borderBottom: `1px solid ${P.border}` }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: P.muted, width: 70, flexShrink: 0, paddingTop: 2, textTransform: 'uppercase', letterSpacing: 0.4 }}>{f.label}</div>
+                <div style={{ fontSize: 14, color: P.text, flex: 1 }}>{f.val}</div>
+              </div>
+            ))}
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: P.muted, width: 70, flexShrink: 0, paddingTop: 2, textTransform: 'uppercase', letterSpacing: 0.4 }}>Size</div>
+              <div style={{ fontSize: 14, color: P.text }}>{client.bedrooms}bd / {client.bathrooms}ba · ~{client.sqft?.toLocaleString()} sq ft</div>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* Service notes */}
       <Card>
         <SectionLabel>Service Notes On File</SectionLabel>
         <div style={{ background: P.bg, border: `1px solid ${P.border}`, borderLeft: `3px solid ${P.gold}`, borderRadius: 8, padding: '12px 14px', fontSize: 14, color: P.sub, lineHeight: 1.65 }}>
-          {client.notes || 'No special instructions on file.'}
+          {contactForm.notes || 'No special instructions on file.'}
         </div>
-        <p style={{ fontSize: 12, color: P.muted, marginTop: 10 }}>
-          Need to update these? Text Ashley at (775) 555-0100.
-        </p>
+        {contactPhone && (
+          <p style={{ fontSize: 12, color: P.muted, marginTop: 10 }}>
+            Need to update these? Use the Edit button above or contact {biz}{contactPhone ? ` at ${contactPhone}` : ''}.
+          </p>
+        )}
       </Card>
 
       {/* Review */}
@@ -521,13 +600,88 @@ function MyDetailsTab({ client }) {
       <Card>
         <SectionLabel>Request a Change or Rebook</SectionLabel>
         <p style={{ fontSize: 13, color: P.sub, marginBottom: 12 }}>Need to reschedule, change your frequency, or add a service?</p>
-        <a
-          href="sms:+17755550100"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 18px', background: P.gold, color: '#fff8ee', borderRadius: 10, fontSize: 14, fontWeight: 700, textDecoration: 'none' }}
-        >
-          <Phone size={14} /> Text Us to Request
-        </a>
+        {(() => {
+          const p = getStoredProfile()
+          return (
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {p.phone && <a href={`sms:${p.phone}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 18px', background: P.gold, color: '#fff8ee', borderRadius: 10, fontSize: 14, fontWeight: 700, textDecoration: 'none' }}><Phone size={14} /> Text Us</a>}
+              {p.email && <a href={`mailto:${p.email}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 18px', background: 'transparent', border: `1px solid ${P.goldBorder}`, color: P.gold, borderRadius: 10, fontSize: 14, fontWeight: 700, textDecoration: 'none' }}><Mail size={14} /> Email Us</a>}
+              {!p.phone && !p.email && <p style={{ fontSize: 13, color: P.muted }}>Contact your service provider to request changes.</p>}
+            </div>
+          )
+        })()}
       </Card>
+    </div>
+  )
+}
+
+// ─── Appointments tab ──────────────────────────────────────────────────────────
+function AppointmentsTab({ client, jobs }) {
+  const today = new Date().toISOString().split('T')[0]
+  const clientJobs = jobs.filter(j => j.clientId === client.id)
+  const upcoming   = clientJobs.filter(j => j.date >= today && j.status !== 'completed').sort((a, b) => a.date.localeCompare(b.date))
+  const past       = clientJobs.filter(j => j.date < today || j.status === 'completed').sort((a, b) => b.date.localeCompare(a.date))
+
+  const STATUS_COLORS = {
+    scheduled:   { bg: P.warningBg,  color: P.warning  },
+    'in-progress': { bg: '#EBF5EC', color: P.success   },
+    completed:   { bg: P.successBg,  color: P.success   },
+    pending:     { bg: P.warningBg,  color: P.warning   },
+  }
+
+  const JobCard = ({ job, upcoming: isUp }) => {
+    const sc = STATUS_COLORS[job.status] || STATUS_COLORS.pending
+    return (
+      <Card style={{ marginBottom: 10, borderLeft: `3px solid ${isUp ? P.gold : P.border}` }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: P.text, marginBottom: 4 }}>
+              {job.day}, {job.date.slice(5)} at {job.time}
+            </div>
+            <div style={{ fontSize: 13, color: P.sub, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
+              <MapPin size={12} /> {job.address}
+            </div>
+            <div style={{ fontSize: 12, color: P.muted, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Clock size={12} /> ~{job.duration} hrs
+              {job.type && <> · <span style={{ textTransform: 'capitalize' }}>{job.type}</span></>}
+            </div>
+          </div>
+          <span style={{ padding: '3px 9px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: sc.bg, color: sc.color, flexShrink: 0, textTransform: 'capitalize' }}>
+            {job.status || 'Scheduled'}
+          </span>
+        </div>
+        {job.waiverStatus === 'sent' && job.waiverStatus !== 'signed' && (
+          <div style={{ marginTop: 10, padding: '8px 12px', background: P.warningBg, border: `1px solid ${P.goldBorder}`, borderRadius: 8, fontSize: 12, color: P.warning, fontWeight: 600 }}>
+            ⚠ Waiver signature required — go to the Waivers tab
+          </div>
+        )}
+      </Card>
+    )
+  }
+
+  if (clientJobs.length === 0) {
+    return (
+      <Card style={{ textAlign: 'center', padding: '48px 24px' }}>
+        <CalendarDays size={28} style={{ color: P.gold, opacity: 0.3, display: 'block', margin: '0 auto 12px' }} />
+        <p style={{ fontSize: 14, color: P.muted }}>No appointments on file yet.</p>
+      </Card>
+    )
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {upcoming.length > 0 && (
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.7, color: P.gold, marginBottom: 12 }}>Upcoming ({upcoming.length})</div>
+          {upcoming.map(j => <JobCard key={j.id} job={j} upcoming />)}
+        </div>
+      )}
+      {past.length > 0 && (
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.7, color: P.muted, marginBottom: 12 }}>Past Appointments ({past.length})</div>
+          {past.map(j => <JobCard key={j.id} job={j} />)}
+        </div>
+      )}
     </div>
   )
 }
@@ -650,6 +804,8 @@ function WaiverTab({ client, jobs, onSignWaiver }) {
 
 // ─── Main portal dashboard ────────────────────────────────────────────────────
 function PortalDashboard({ client, onLogout, jobs, onSignWaiver }) {
+  const profile = getStoredProfile()
+  const biz     = profile.businessName || 'CleanOS'
   const [tab, setTab] = useState('home')
   const photos    = samplePhotos.filter(p => p.clientId === client.id)
   const invoices  = sampleInvoices.filter(i => i.clientId === client.id)
@@ -657,11 +813,11 @@ function PortalDashboard({ client, onLogout, jobs, onSignWaiver }) {
   const pendingWaivers = jobs.filter(j => j.clientId === client.id && j.waiverStatus === 'sent').length
 
   const TABS = [
-    { id: 'home',     Icon: Home,         label: 'Home'    },
-    { id: 'photos',   Icon: Image,        label: 'Photos'  },
-    { id: 'invoices', Icon: Receipt,      label: 'Invoices'},
+    { id: 'home',     Icon: Home,         label: 'Home'         },
+    { id: 'appts',    Icon: CalendarDays, label: 'Appointments' },
+    { id: 'invoices', Icon: Receipt,      label: 'Invoices'     },
     { id: 'waivers',  Icon: ShieldCheck,  label: 'Waivers', badge: pendingWaivers },
-    { id: 'details',  Icon: User,         label: 'My Info' },
+    { id: 'details',  Icon: User,         label: 'My Info'      },
   ]
 
   return (
@@ -672,7 +828,7 @@ function PortalDashboard({ client, onLogout, jobs, onSignWaiver }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 32, height: 32, background: P.gold, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff8ee', fontSize: 14, flexShrink: 0 }}>✦</div>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: P.text, lineHeight: 1.1 }}>Reno Reset</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: P.text, lineHeight: 1.1 }}>{biz}</div>
               <div style={{ fontSize: 10, color: P.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Client Portal</div>
             </div>
           </div>
@@ -718,11 +874,11 @@ function PortalDashboard({ client, onLogout, jobs, onSignWaiver }) {
 
       {/* Content */}
       <main style={{ maxWidth: 700, margin: '0 auto', padding: '20px 16px 40px' }}>
-        {tab === 'home'     && <HomeTab      client={client} photos={photos} invoices={invoices} jobs={jobs} />}
-        {tab === 'photos'   && <PhotosTab    photos={photos} clientName={client.name} />}
-        {tab === 'invoices' && <InvoicesTab  invoices={invoices} paymentSetting={payment} />}
-        {tab === 'waivers'  && <WaiverTab    client={client} jobs={jobs} onSignWaiver={onSignWaiver} />}
-        {tab === 'details'  && <MyDetailsTab client={client} />}
+        {tab === 'home'     && <HomeTab         client={client} photos={photos} invoices={invoices} jobs={jobs} />}
+        {tab === 'appts'    && <AppointmentsTab client={client} jobs={jobs} />}
+        {tab === 'invoices' && <InvoicesTab     invoices={invoices} paymentSetting={payment} />}
+        {tab === 'waivers'  && <WaiverTab       client={client} jobs={jobs} onSignWaiver={onSignWaiver} />}
+        {tab === 'details'  && <MyDetailsTab    client={client} />}
       </main>
     </div>
   )

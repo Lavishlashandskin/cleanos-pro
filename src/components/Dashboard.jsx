@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { DollarSign, Users, CalendarCheck, TrendingUp, Gift, Search, X, Mail, ShieldCheck, Clock, Bell, MessageSquare } from 'lucide-react'
 import { clients, workers, tipLog } from '../data/sampleData.js'
+import { useProfile } from '../context/ProfileContext.jsx'
+import { useService } from '../context/ServiceContext.jsx'
 
 function getClientName(job) {
   if (job.clientName) return job.clientName
@@ -51,7 +53,8 @@ function WaiverBadge({ job, onSendWaiver }) {
         const email  = client?.email || ''
         const name   = getClientName(job)
         const first  = name.split(' ')[0]
-        const body   = `Hi ${first},\n\nYour upcoming service appointment requires a signed agreement before we arrive.\n\nPlease log in to the client portal and navigate to the "Waivers" tab to review and sign.\n\nThank you!\nReno Reset Team`
+        const biz    = profile?.businessName || 'our team'
+        const body   = `Hi ${first},\n\nYour upcoming service appointment requires a signed agreement before we arrive.\n\nPlease log in to the client portal and navigate to the "Waivers" tab to review and sign.\n\nThank you!\n${biz}`
         window.open(`mailto:${email}?subject=${encodeURIComponent('Service Agreement — Please Sign')}&body=${encodeURIComponent(body)}`)
         onSendWaiver?.(job.id)
       }}
@@ -62,6 +65,8 @@ function WaiverBadge({ job, onSendWaiver }) {
 }
 
 export default function Dashboard({ jobs = [], onJobClick, onSendWaiver }) {
+  const { profile } = useProfile()
+  const { serviceType } = useService()
   const [query, setQuery] = useState('')
   const [open, setOpen]   = useState(false)
   const searchRef         = useRef(null)
@@ -84,6 +89,10 @@ export default function Dashboard({ jobs = [], onJobClick, onSendWaiver }) {
     return name.includes(q) || j.address.toLowerCase().includes(q) || j.type.toLowerCase().includes(q)
   }).slice(0, 4) : []
   const hasResults = matchClients.length + matchWorkers.length + matchJobs.length > 0
+
+  const pendingBookings = (() => {
+    try { return JSON.parse(localStorage.getItem('cleanos_bookings') || '[]').filter(b => b.status === 'pending') } catch { return [] }
+  })()
 
   const totalMonthly = clients.reduce((sum, c) => {
     const mult = c.frequency === 'weekly' ? 4 : c.frequency === 'biweekly' ? 2 : 1
@@ -165,9 +174,21 @@ export default function Dashboard({ jobs = [], onJobClick, onSendWaiver }) {
         )}
       </div>
 
+      {pendingBookings.length > 0 && (
+        <div style={{ marginBottom: 16, padding: '12px 16px', background: 'var(--gold-muted)', border: '1px solid var(--gold)', borderRadius: 'var(--radius)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Bell size={14} style={{ color: 'var(--gold)', flexShrink: 0 }} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--gold)' }}>
+              {pendingBookings.length} new online booking request{pendingBookings.length !== 1 ? 's' : ''} — {pendingBookings[0].clientName}{pendingBookings.length > 1 ? ` + ${pendingBookings.length - 1} more` : ''}
+            </span>
+          </div>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>View in Schedule</span>
+        </div>
+      )}
+
       <div className="page-header">
-        <h1>Welcome back, Ashley</h1>
-        <p>Here's what's happening with Reno Reset — as of today.</p>
+        <h1>Welcome back, {profile.ownerName}</h1>
+        <p>Here's what's happening with {profile.businessName || 'your business'} — as of today.</p>
       </div>
 
       <div className="stat-grid">

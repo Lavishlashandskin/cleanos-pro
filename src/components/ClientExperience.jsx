@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { Heart, Sparkles, Copy, Check, Gift, Star, Camera, Upload, X, ZoomIn, AlertTriangle, CheckCircle, Circle } from 'lucide-react'
 import { clients, samplePhotos } from '../data/sampleData.js'
 import { generateWowNote } from '../lib/aiPlaceholders.js'
+import { useProfile } from '../context/ProfileContext.jsx'
 
 function daysUntilBirthday(birthdayStr) {
   if (!birthdayStr) return 999
@@ -185,7 +186,7 @@ function BirthdaysTab() {
     const name = client.name.split(' ')[0]
     setGenerated(g => ({
       ...g,
-      [client.id]: `Hi ${name}! Wishing you the happiest of birthdays! It's always such a pleasure taking care of your home, and today we want to take care of YOU. As a little birthday gift from us, your next clean is on the house — our treat. Enjoy your special day! 🎉\n\nWith love,\nAshley & the Reno Reset team`,
+      [client.id]: `Hi ${name}! Wishing you the happiest of birthdays! It's always such a pleasure taking care of your home, and today we want to take care of YOU. As a little birthday gift from us, your next clean is on the house — our treat. Enjoy your special day! 🎉\n\nWith love,\n${profile.businessName || profile.ownerName || 'Your Team'}`,
     }))
     setLoading(l => ({ ...l, [client.id]: false }))
   }
@@ -304,7 +305,7 @@ function ClientPortalTab() {
               </div>
               <div style={{ fontSize: 20, fontWeight: 700 }}>Hi, {client.name.split(' ')[0]}!</div>
               <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
-                Reno Reset Cleaning Co. · Client since {client.since}
+                {profile.businessName || 'Your Business'} · Client since {client.since}
               </div>
             </div>
 
@@ -393,7 +394,7 @@ function PhotosTab() {
       date: '2026-06-11',
       type: addForm.type,
       caption: addForm.caption || `${PHOTO_TYPE[addForm.type].label} clean photo`,
-      addedBy: 'Ashley',
+      addedBy: profile.ownerName || 'Team',
       dataUrl: addForm.dataUrl,
     }
     setPhotos(prev => [newPhoto, ...prev])
@@ -639,6 +640,7 @@ function PhotosTab() {
 const TABS = ['Wow Notes', 'Loyalty Tiers', 'Birthdays', 'Client Portal', 'Photos']
 
 export default function ClientExperience() {
+  const { profile } = useProfile()
   const [activeTab, setActiveTab] = useState('Wow Notes')
 
   return (

@@ -1,26 +1,50 @@
 import { useState } from 'react'
-import { Bell, Navigation, Star, Check, Send, FileText, MessageSquare, Loader } from 'lucide-react'
+import { Bell, Navigation, Star, Check, Send, FileText, MessageSquare, Link, Receipt } from 'lucide-react'
 import { clients } from '../data/sampleData.js'
+import { useProfile } from '../context/ProfileContext.jsx'
+import { sendEmail } from '../lib/sendEmail.js'
 
-const DEFAULT_TEMPLATES = {
-  reminder: {
-    subject: 'Reminder — your appointment is tomorrow at {time}',
-    body: `Hi {name}!\n\nJust a reminder that we'll be at {address} tomorrow ({day}) at {time}. If anything changes, please let us know as soon as possible.\n\nSee you then!\n— Reno Reset Team`,
-  },
-  onMyWay: {
-    subject: 'Your cleaner is on the way!',
-    body: `Hi {name}!\n\nYour cleaner is heading to {address} now and should arrive at approximately {time}. We're excited to get your space sparkling!\n\n— Reno Reset Team`,
-  },
-  review: {
-    subject: 'How did your clean go? Quick feedback appreciated',
-    body: `Hi {name}!\n\nThank you for having Reno Reset at {address}. We hope everything looks amazing!\n\nWe'd love to hear your feedback. Log in to your client portal and leave a quick star rating — it only takes 30 seconds and helps us keep improving.\n\nThank you!\n— Ashley & the Reno Reset Team`,
-  },
+function makeDefaultTemplates(biz, owner) {
+  const sig = biz || 'Your Service Team'
+  const ownerSig = owner ? `${owner} & the ${sig}` : sig
+  return {
+    reminder: {
+      subject: 'Reminder — your appointment is tomorrow at {time}',
+      body: `Hi {name}!\n\nJust a reminder that we'll be at {address} tomorrow ({day}) at {time}. If anything changes, please let us know as soon as possible.\n\nSee you then!\n— ${sig}`,
+    },
+    onMyWay: {
+      subject: "We're on our way!",
+      body: `Hi {name}!\n\nWe're heading to {address} now and should arrive at approximately {time}. We're excited to get your space taken care of!\n\n— ${sig}`,
+    },
+    review: {
+      subject: 'How did your service go? Quick feedback appreciated',
+      body: `Hi {name}!\n\nThank you for trusting ${sig} with your home. We hope everything looks amazing!\n\nWe'd love to hear your feedback. Log in to your client portal and leave a quick star rating — it only takes 30 seconds.\n\nThank you!\n— ${ownerSig}`,
+    },
+    waiver: {
+      subject: 'Service Agreement — please sign before your appointment',
+      body: `Hi {name}!\n\nYour upcoming appointment on {day} at {time} requires a signed service agreement.\n\nPlease log in to your client portal and go to the "Waivers" tab to review and sign — it only takes a moment.\n\n{portal_link}\n\nIf you have any questions, don't hesitate to reach out!\n\n— ${sig}`,
+    },
+    receipt: {
+      subject: 'Payment receipt — thank you!',
+      body: `Hi {name}!\n\nThank you for your payment! Here's a quick summary:\n\nService: {service}\nDate: {day}\nAddress: {address}\nAmount: {amount}\n\nWe appreciate your business and look forward to seeing you again!\n\n— ${ownerSig}`,
+    },
+  }
 }
 
 const COMM_CONFIG = {
-  reminder: { label: '24-Hr Reminder',  icon: Bell,       color: '#b5924c', desc: 'Send the day before the appointment' },
-  onMyWay:  { label: 'On My Way',       icon: Navigation, color: '#4A7A4D', desc: 'Send when worker departs for the job'  },
-  review:   { label: 'Review Request',  icon: Star,       color: '#7B6BC8', desc: 'Send after job is marked complete'     },
+  reminder: { label: '24-Hr Reminder',   icon: Bell,       color: '#b5924c', desc: 'Send the day before the appointment' },
+  onMyWay:  { label: 'On My Way',        icon: Navigation, color: '#4A7A4D', desc: 'Send when worker departs for the job'  },
+  review:   { label: 'Review Request',   icon: Star,       color: '#7B6BC8', desc: 'Send after job is marked complete'     },
+  waiver:   { label: 'Waiver Link',      icon: Link,       color: '#5E8FB5', desc: 'Send when booking is confirmed'       },
+  receipt:  { label: 'Payment Receipt',  icon: Receipt,    color: '#4A7A4D', desc: 'Send after payment is collected'      },
+}
+
+const PLACEHOLDERS = {
+  reminder: ['{name}', '{address}', '{day}', '{time}'],
+  onMyWay:  ['{name}', '{address}', '{time}'],
+  review:   ['{name}', '{address}'],
+  waiver:   ['{name}', '{day}', '{time}', '{portal_link}'],
+  receipt:  ['{name}', '{service}', '{day}', '{address}', '{amount}'],
 }
 
 function getClientName(job) {
@@ -74,16 +98,29 @@ function CommCard({ job, commType, onSend, alreadySent }) {
 }
 
 export default function AutoComms({ jobs = [], onUpdateComm }) {
+  const { profile } = useProfile()
   const [tab, setTab] = useState('due')
+
   const [templates, setTemplates] = useState(() => {
     try {
       const s = localStorage.getItem('cleanos_comms_templates')
-      return s ? { ...DEFAULT_TEMPLATES, ...JSON.parse(s) } : DEFAULT_TEMPLATES
-    } catch { return DEFAULT_TEMPLATES }
+      if (s) {
+        const stored = JSON.parse(s)
+        // Always re-inject current defaults for keys not yet customized
+        const defaults = makeDefaultTemplates(
+          JSON.parse(localStorage.getItem('cleanos_profile') || '{}').businessName,
+          JSON.parse(localStorage.getItem('cleanos_profile') || '{}').ownerName,
+        )
+        return { ...defaults, ...stored }
+      }
+    } catch {}
+    return makeDefaultTemplates(profile.businessName, profile.ownerName)
   })
+
   const [editKey, setEditKey] = useState(null)
-  const [draft, setDraft] = useState({})
+  const [draft, setDraft]     = useState({})
   const [savedMsg, setSavedMsg] = useState('')
+  const [sendingKey, setSendingKey] = useState(null)
 
   const TODAY    = '2026-06-12'
   const TOMORROW = '2026-06-13'
@@ -99,12 +136,32 @@ export default function AutoComms({ jobs = [], onUpdateComm }) {
   const reviewDue = jobs.filter(j =>
     j.status === 'completed' && j.commsLog?.review !== 'sent'
   )
-  const totalDue = reminderDue.length + onMyWayDue.length + reviewDue.length
+  const waiverDue = jobs.filter(j =>
+    j.waiverStatus === 'sent' && j.commsLog?.waiver !== 'sent'
+  )
+  const totalDue = reminderDue.length + onMyWayDue.length + reviewDue.length + waiverDue.length
 
-  const handleSend = (job, commType, firstName, email) => {
+  const handleSend = async (job, commType, firstName, email) => {
     const t = templates[commType]
-    const vars = { name: firstName, address: job.address, day: job.day, time: job.time }
-    window.open(`mailto:${email}?subject=${encodeURIComponent(fmt(t.subject, vars))}&body=${encodeURIComponent(fmt(t.body, vars))}`)
+    const portalUrl = `${window.location.origin}/portal`
+    const vars = {
+      name: firstName,
+      address: job.address,
+      day: job.day,
+      time: job.time,
+      portal_link: portalUrl,
+      service: job.type || 'Service',
+      amount: job.amount ? `$${job.amount}` : 'See invoice',
+    }
+    setSendingKey(commType + job.id)
+    await sendEmail({
+      to: email,
+      subject: fmt(t.subject, vars),
+      body: fmt(t.body, vars),
+      fromName: profile.businessName || undefined,
+      fromEmail: profile.email || undefined,
+    })
+    setSendingKey(null)
     onUpdateComm?.(job.id, commType)
   }
 
@@ -125,6 +182,14 @@ export default function AutoComms({ jobs = [], onUpdateComm }) {
     setSavedMsg('Template saved!')
     setTimeout(() => setSavedMsg(''), 2500)
   }
+  const resetTemplate = (key) => {
+    const defaults = makeDefaultTemplates(profile.businessName, profile.ownerName)
+    const updated = { ...templates, [key]: defaults[key] }
+    setTemplates(updated)
+    localStorage.setItem('cleanos_comms_templates', JSON.stringify(updated))
+    setSavedMsg('Template reset to default.')
+    setTimeout(() => setSavedMsg(''), 2500)
+  }
 
   const statusBadge = (v) => {
     if (v === 'sent')    return <span style={{ color: 'var(--success)', fontSize: 11, display: 'flex', alignItems: 'center', gap: 2 }}><Check size={10} />Sent</span>
@@ -132,11 +197,18 @@ export default function AutoComms({ jobs = [], onUpdateComm }) {
     return <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>—</span>
   }
 
+  const sgConfigured = !!profile.sendgridKey
+
   return (
     <div>
       <div className="page-header">
         <h1>Auto Communications</h1>
-        <p>Reminders, on-my-way alerts, and review requests — sent via your email client.</p>
+        <p>Reminders, on-my-way alerts, waiver links, and review requests.
+          {sgConfigured
+            ? <> <span style={{ color: 'var(--success)', fontWeight: 600 }}>SendGrid connected — sending real email.</span></>
+            : <> Sends via your email client. <span style={{ color: 'var(--text-muted)' }}>Add a SendGrid key in Settings to send real email.</span></>
+          }
+        </p>
       </div>
 
       <div className="tabs">
@@ -177,10 +249,7 @@ export default function AutoComms({ jobs = [], onUpdateComm }) {
           {reminderDue.length > 0 && (
             <div className="card mb-4">
               <div className="card-header">
-                <span className="card-title">
-                  <Bell size={13} style={{ display: 'inline', marginRight: 6, color: '#b5924c' }} />
-                  24-Hour Reminders Due
-                </span>
+                <span className="card-title"><Bell size={13} style={{ display: 'inline', marginRight: 6, color: '#b5924c' }} />24-Hour Reminders Due</span>
                 <span className="text-xs text-muted">{reminderDue.length} job{reminderDue.length !== 1 ? 's' : ''}</span>
               </div>
               {reminderDue.map(j => <CommCard key={j.id} job={j} commType="reminder" onSend={handleSend} alreadySent={false} />)}
@@ -190,10 +259,7 @@ export default function AutoComms({ jobs = [], onUpdateComm }) {
           {onMyWayDue.length > 0 && (
             <div className="card mb-4">
               <div className="card-header">
-                <span className="card-title">
-                  <Navigation size={13} style={{ display: 'inline', marginRight: 6, color: '#4A7A4D' }} />
-                  On-My-Way Notifications
-                </span>
+                <span className="card-title"><Navigation size={13} style={{ display: 'inline', marginRight: 6, color: '#4A7A4D' }} />On-My-Way Notifications</span>
                 <span className="text-xs text-muted">{onMyWayDue.length} in progress</span>
               </div>
               {onMyWayDue.map(j => <CommCard key={j.id} job={j} commType="onMyWay" onSend={handleSend} alreadySent={false} />)}
@@ -203,23 +269,29 @@ export default function AutoComms({ jobs = [], onUpdateComm }) {
           {reviewDue.length > 0 && (
             <div className="card mb-4">
               <div className="card-header">
-                <span className="card-title">
-                  <Star size={13} style={{ display: 'inline', marginRight: 6, color: '#7B6BC8' }} />
-                  Review Requests Due
-                </span>
+                <span className="card-title"><Star size={13} style={{ display: 'inline', marginRight: 6, color: '#7B6BC8' }} />Review Requests Due</span>
                 <span className="text-xs text-muted">{reviewDue.length} completed</span>
               </div>
               {reviewDue.map(j => <CommCard key={j.id} job={j} commType="review" onSend={handleSend} alreadySent={false} />)}
             </div>
           )}
 
-          {/* Full status table */}
+          {waiverDue.length > 0 && (
+            <div className="card mb-4">
+              <div className="card-header">
+                <span className="card-title"><Link size={13} style={{ display: 'inline', marginRight: 6, color: '#5E8FB5' }} />Waiver Link Needed</span>
+                <span className="text-xs text-muted">{waiverDue.length} pending signature</span>
+              </div>
+              {waiverDue.map(j => <CommCard key={j.id} job={j} commType="waiver" onSend={handleSend} alreadySent={false} />)}
+            </div>
+          )}
+
           <div className="card">
             <div className="card-header"><span className="card-title">All Jobs — Comm Status</span></div>
             <div className="table-wrap">
               <table>
                 <thead>
-                  <tr><th>Client</th><th>Date</th><th>Reminder</th><th>On My Way</th><th>Review</th></tr>
+                  <tr><th>Client</th><th>Date</th><th>Reminder</th><th>On My Way</th><th>Waiver</th><th>Review</th></tr>
                 </thead>
                 <tbody>
                   {jobs.map(j => {
@@ -230,6 +302,7 @@ export default function AutoComms({ jobs = [], onUpdateComm }) {
                         <td>{j.day} {j.date.slice(5)}</td>
                         <td>{statusBadge(log.reminder)}</td>
                         <td>{statusBadge(log.onMyWay)}</td>
+                        <td>{statusBadge(log.waiver)}</td>
                         <td>{statusBadge(log.review)}</td>
                       </tr>
                     )
@@ -245,12 +318,14 @@ export default function AutoComms({ jobs = [], onUpdateComm }) {
       {tab === 'templates' && (
         <div>
           {savedMsg && <div className="alert alert-success mb-4"><Check size={14} /> {savedMsg}</div>}
+          {!profile.businessName && (
+            <div className="alert alert-info mb-4" style={{ fontSize: 12 }}>
+              <MessageSquare size={13} />
+              <div>Set your <strong>Business Name</strong> in Settings → Business Profile to personalize your signatures automatically.</div>
+            </div>
+          )}
           <p className="text-sm text-muted mb-4" style={{ marginBottom: 20 }}>
-            Customize your message templates. Use{' '}
-            {['{name}', '{address}', '{day}', '{time}'].map(p => (
-              <code key={p} style={{ background: 'var(--bg-input)', padding: '1px 5px', borderRadius: 4, margin: '0 2px', fontSize: 11 }}>{p}</code>
-            ))}{' '}
-            as placeholders.
+            Customize your message templates. Placeholders are shown per template type.
           </p>
 
           {Object.entries(COMM_CONFIG).map(([key, cfg]) => {
@@ -264,11 +339,31 @@ export default function AutoComms({ jobs = [], onUpdateComm }) {
                     <span className="card-title">{cfg.label}</span>
                     <span className="text-xs text-muted" style={{ marginLeft: 2 }}>{cfg.desc}</span>
                   </div>
-                  {!isEditing && <button className="btn btn-ghost btn-sm" onClick={() => startEdit(key)}>Edit</button>}
+                  {!isEditing && (
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button className="btn btn-ghost btn-sm" onClick={() => startEdit(key)}>Edit</button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => resetTemplate(key)} style={{ fontSize: 11 }}>Reset</button>
+                    </div>
+                  )}
                 </div>
+
+                {/* Placeholder chips */}
+                {!isEditing && PLACEHOLDERS[key] && (
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 10 }}>
+                    {PLACEHOLDERS[key].map(p => (
+                      <code key={p} style={{ background: 'var(--bg-input)', padding: '1px 6px', borderRadius: 4, fontSize: 11, border: '1px solid var(--border)' }}>{p}</code>
+                    ))}
+                  </div>
+                )}
 
                 {isEditing ? (
                   <div style={{ marginTop: 12 }}>
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 10 }}>
+                      {PLACEHOLDERS[key]?.map(p => (
+                        <code key={p} style={{ background: 'var(--bg-input)', padding: '1px 6px', borderRadius: 4, fontSize: 11, border: '1px solid var(--border)', cursor: 'pointer' }}
+                          onClick={() => setDraft(d => ({ ...d, body: d.body + p }))}>{p}</code>
+                      ))}
+                    </div>
                     <div className="form-group">
                       <label className="form-label">Subject</label>
                       <input value={draft.subject} onChange={e => setDraft(d => ({ ...d, subject: e.target.value }))} />

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, MapPin, Phone, Clock, User, Pencil, Check, ExternalLink, CheckSquare, Square, Camera, Star, Navigation, CheckCircle } from 'lucide-react'
 import { clients, workers } from '../data/sampleData.js'
+import { getStoredProfile } from '../context/ProfileContext.jsx'
 
 const TYPE_LABELS = { residential: 'Residential', commercial: 'Commercial', airbnb: 'Airbnb Turnover', moveout: 'Move-Out' }
 const TYPE_COLORS = { residential: 'badge-neutral', commercial: 'badge-blue', airbnb: 'badge-gold', moveout: 'badge-warning' }
@@ -86,7 +87,10 @@ export default function JobDetailModal({ job, onClose, onSave, onCompleteJob, on
   const handleRequestRating = () => {
     const email = client?.email || ''
     const first = clientName.split(' ')[0]
-    const body  = `Hi ${first}!\n\nThank you for having Reno Reset at ${address}. We hope your space looks absolutely amazing!\n\nWe'd love to hear how we did — a quick star rating takes less than 30 seconds.\n\nLog in to your client portal at renoreset.com/portal and leave a rating under "My Info."\n\nThank you so much!\n— Ashley & the Reno Reset Team`
+    const p     = getStoredProfile()
+    const biz   = p.businessName || 'our team'
+    const portalUrl = p.website ? `${p.website}/portal` : `${window.location.origin}/portal`
+    const body  = `Hi ${first}!\n\nThank you for trusting ${biz}. We hope your space looks amazing!\n\nWe'd love to hear how we did — a quick star rating takes less than 30 seconds.\n\nLog in to your client portal at ${portalUrl} and leave a rating under "My Info."\n\nThank you!\n— ${p.ownerName ? `${p.ownerName} & the ` : ''}${biz}`
     window.open(`mailto:${email}?subject=${encodeURIComponent('How did your clean go? Quick rating appreciated!')}&body=${encodeURIComponent(body)}`)
     onRequestRating?.(job.id)
   }

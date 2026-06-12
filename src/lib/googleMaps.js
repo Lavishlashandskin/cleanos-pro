@@ -1,15 +1,17 @@
 // Google Maps API loader and utilities
 // Set VITE_GOOGLE_MAPS_KEY in .env to enable live geocoding and distance calculation
 
-const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY
+const ENV_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY
+const getKey = () => ENV_KEY || localStorage.getItem('cleanos_maps_key_override') || ''
 
 let loadPromise = null
 
 export function isConfigured() {
-  return !!API_KEY
+  return !!getKey()
 }
 
 export async function loadGoogleMaps() {
+  const API_KEY = getKey()
   if (!API_KEY) return null
   if (window.google?.maps) return window.google.maps
   if (loadPromise) return loadPromise
@@ -27,7 +29,7 @@ export async function loadGoogleMaps() {
 }
 
 export async function geocodeAddress(address) {
-  if (!API_KEY || !address?.trim()) return null
+  if (!getKey() || !address?.trim()) return null
   try {
     const maps = await loadGoogleMaps()
     if (!maps) return null
@@ -52,7 +54,7 @@ export async function geocodeAddress(address) {
 }
 
 export async function getDistanceMiles(origin, destination) {
-  if (!API_KEY || !origin || !destination) return null
+  if (!getKey() || !origin || !destination) return null
   try {
     const maps = await loadGoogleMaps()
     if (!maps) return null
@@ -81,7 +83,7 @@ export async function getDistanceMiles(origin, destination) {
 }
 
 export async function optimizeRouteOrder(addresses) {
-  if (!API_KEY || !addresses || addresses.length < 2) return null
+  if (!getKey() || !addresses || addresses.length < 2) return null
   try {
     const maps = await loadGoogleMaps()
     if (!maps) return null

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { FileText, AlertTriangle, Check, Download, ChevronDown, ChevronUp, DollarSign, Users } from 'lucide-react'
 import { workers, tipLog } from '../data/sampleData.js'
+import { useProfile } from '../context/ProfileContext.jsx'
 
 const THRESHOLD_1099 = 600
 const TAX_YEAR = 2026
@@ -107,7 +108,7 @@ function WorkerReport({ worker, open, onToggle }) {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 13 }}>
                 {[
-                  ['Payer (you)', 'Reno Reset / Ashley Montgomery'],
+                  ['Payer (you)', `${profile.businessName || 'Your Business'} / ${profile.ownerName || 'Owner'}`],
                   ['Payer EIN/SSN', 'XX-XXXXXXX (your EIN)'],
                   ['Contractor', worker.name],
                   ['Contractor SSN', 'XXX-XX-XXXX (collect W-9)'],
@@ -136,6 +137,7 @@ function WorkerReport({ worker, open, onToggle }) {
 }
 
 export default function ContractorTax() {
+  const { profile } = useProfile()
   const [openWorker, setOpenWorker] = useState(null)
   const [showDemo, setShowDemo] = useState(false)
 

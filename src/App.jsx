@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { Sun, Moon, Globe, Home, CalendarDays, DollarSign, Users, MoreHorizontal, AlertTriangle, X } from 'lucide-react'
+import { Sun, Moon, Globe, Home, CalendarDays, DollarSign, Users, MoreHorizontal, AlertTriangle, X, ExternalLink } from 'lucide-react'
 import { PricingProvider } from './context/PricingContext.jsx'
 import { ServiceProvider } from './context/ServiceContext.jsx'
 import { SubscriptionProvider, useSubscription } from './context/SubscriptionContext.jsx'
 import { LocationProvider } from './context/LocationContext.jsx'
+import { ProfileProvider } from './context/ProfileContext.jsx'
 import { upcomingJobs as initialJobs } from './data/sampleData.js'
 
 import Sidebar        from './components/Sidebar.jsx'
@@ -195,6 +196,16 @@ function AppInner() {
             <SubscriptionBanner />
             <header className="topbar">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <a
+                  href="/book"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="theme-toggle-btn"
+                  title="Open public booking page"
+                  style={{ width: 'auto', borderRadius: 6, padding: '0 10px', gap: 6, fontSize: 12, fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center' }}
+                >
+                  <ExternalLink size={13} /> Book Page
+                </a>
                 <button
                   className="theme-toggle-btn"
                   onClick={() => setPortalMode(true)}
@@ -259,7 +270,9 @@ function AppInner() {
 export default function App() {
   return (
     <SubscriptionProvider>
-      <AppInner />
+      <ProfileProvider>
+        <AppInner />
+      </ProfileProvider>
     </SubscriptionProvider>
   )
 }

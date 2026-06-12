@@ -1,15 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   Check, RotateCcw, AlertTriangle, CreditCard, ShieldCheck,
   MapPin, Plus, Trash2, Globe, Sparkles, Truck, Wrench,
   Home, Building2, PlaneTakeoff, Clock, Zap, Package,
   Paintbrush, Hammer, Plug, Droplets, Layers, TreePine,
-  DollarSign, Percent, Car, ArrowRight,
+  DollarSign, Percent, Car, ArrowRight, User, Mail, Phone,
+  Link2, Key, Send, Eye, EyeOff,
 } from 'lucide-react'
 import { usePricing, DEFAULTS_BY_TYPE } from '../context/PricingContext.jsx'
 import { useService, SERVICE_CONFIG } from '../context/ServiceContext.jsx'
 import { useSubscription, SUBSCRIPTION_STATES } from '../context/SubscriptionContext.jsx'
 import { useLocation } from '../context/LocationContext.jsx'
+import { useProfile } from '../context/ProfileContext.jsx'
 import { isConfigured as mapsConfigured } from '../lib/googleMaps.js'
 
 // ── Shared field components ───────────────────────────────────────────────────
@@ -383,28 +385,148 @@ const TYPE_SUBTITLES = {
   handyman: 'Repairs, materials, warranties',
 }
 
+// ── Business Profile ──────────────────────────────────────────────────────────
+function BusinessProfile() {
+  const { profile, saveProfile } = useProfile()
+  const [form, setForm] = useState({ ...profile })
+  const [saved, setSaved] = useState(false)
+  const [showSG, setShowSG] = useState(false)
+  const [showMaps, setShowMaps] = useState(false)
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const handleSave = () => {
+    saveProfile(form)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
+  }
+
+  return (
+    <>
+      <div className="card mb-4">
+        <SectionHeader icon={User} title="Business Profile" />
+        <p className="text-sm text-muted mb-4" style={{ marginTop: -8 }}>
+          Your name and business info appear throughout the app and in client communications.
+        </p>
+        <div className="form-row">
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Your Name</label>
+            <input value={form.ownerName} onChange={e => set('ownerName', e.target.value)} placeholder="Ashley" />
+          </div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Your Role / Title</label>
+            <input value={form.ownerRole} onChange={e => set('ownerRole', e.target.value)} placeholder="Owner · CEO" />
+          </div>
+        </div>
+        <div className="form-group mt-3">
+          <label className="form-label">Business Name</label>
+          <input value={form.businessName} onChange={e => set('businessName', e.target.value)} placeholder="e.g. Reno Reset Cleaning" />
+        </div>
+        <div className="form-row mt-3">
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Business Email</label>
+            <input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="hello@yourbusiness.com" />
+          </div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Business Phone</label>
+            <input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="(555) 555-0100" />
+          </div>
+        </div>
+        <div className="form-group mt-3" style={{ marginBottom: 0 }}>
+          <label className="form-label">Website</label>
+          <input type="url" value={form.website} onChange={e => set('website', e.target.value)} placeholder="https://yourbusiness.com" />
+        </div>
+      </div>
+
+      <div className="card mb-4">
+        <SectionHeader icon={Link2} title="Integrations" />
+        <p className="text-sm text-muted mb-4" style={{ marginTop: -8 }}>
+          API keys for email delivery and map features. Keys are stored locally in your browser.
+        </p>
+
+        {/* SendGrid */}
+        <div style={{ padding: '14px', background: 'var(--bg-input)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <Send size={14} style={{ color: 'var(--gold)' }} />
+            <span style={{ fontWeight: 700, fontSize: 13 }}>SendGrid Email</span>
+            {form.sendgridKey && <span style={{ fontSize: 11, color: 'var(--success)', fontWeight: 600 }}>● Connected</span>}
+          </div>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
+            When configured, Auto Comms sends real emails via SendGrid instead of opening your mail client.
+          </p>
+          <div style={{ position: 'relative' }}>
+            <input
+              type={showSG ? 'text' : 'password'}
+              value={form.sendgridKey}
+              onChange={e => set('sendgridKey', e.target.value)}
+              placeholder="SG.xxxxxxxxxxxxxxxxxxxxxxxx"
+              style={{ paddingRight: 40 }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowSG(s => !s)}
+              style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0 }}
+            >
+              {showSG ? <EyeOff size={14} /> : <Eye size={14} />}
+            </button>
+          </div>
+        </div>
+
+        {/* Google Maps */}
+        <div style={{ padding: '14px', background: 'var(--bg-input)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <MapPin size={14} style={{ color: 'var(--gold)' }} />
+            <span style={{ fontWeight: 700, fontSize: 13 }}>Google Maps API</span>
+            {(form.googleMapsKey || mapsConfigured()) && <span style={{ fontSize: 11, color: 'var(--success)', fontWeight: 600 }}>● Connected</span>}
+          </div>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
+            Enables address autocomplete, geocoding, GPS distance, and route optimization. Also set via <code>VITE_GOOGLE_MAPS_KEY</code> in <code>.env</code>.
+          </p>
+          <div style={{ position: 'relative' }}>
+            <input
+              type={showMaps ? 'text' : 'password'}
+              value={form.googleMapsKey}
+              onChange={e => set('googleMapsKey', e.target.value)}
+              placeholder="AIzaSy…"
+              style={{ paddingRight: 40 }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowMaps(s => !s)}
+              style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0 }}
+            >
+              {showMaps ? <EyeOff size={14} /> : <Eye size={14} />}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex gap-3 items-center mb-4">
+        <button className="btn btn-primary" onClick={handleSave}>
+          {saved ? <><Check size={14} /> Saved!</> : 'Save Profile & Integrations'}
+        </button>
+        {saved && <span style={{ fontSize: 13, color: 'var(--success)' }}>Changes will appear throughout the app.</span>}
+      </div>
+    </>
+  )
+}
+
 // ── Main Settings component ───────────────────────────────────────────────────
 export default function Settings() {
   const { pricingAll, savePricingForType, resetToDefaults } = usePricing()
   const { serviceType, setServiceType } = useService()
   const { state: subState, simulateFailedPayment, simulateSuspend, simulateCancel, setState: setSubState } = useSubscription()
 
-  const [form, setForm] = useState(pricingAll[serviceType])
+  // One form state per service type — switching types is synchronous, no intermediate render with wrong shape
+  const [forms, setForms] = useState({
+    cleaning: pricingAll.cleaning,
+    moving:   pricingAll.moving,
+    handyman: pricingAll.handyman,
+  })
   const [saved, setSaved] = useState(false)
 
-  // Sync form when service type changes
-  useEffect(() => {
-    setForm(pricingAll[serviceType])
-    setSaved(false)
-  }, [serviceType, pricingAll])
-
-  // Generic setter for top-level keys
-  const set = (key, val) => setForm(f => ({ ...f, [key]: val }))
-
-  // Setter for one level of nesting (addOns.oven, trucks.medium, specialty.plumbing)
-  const setNested = (parent, key, val) => setForm(f => ({ ...f, [parent]: { ...(f[parent] || {}), [key]: val } }))
-
-  // Cleaning-specific: set within addOns
+  const form = forms[serviceType]
+  const set = (key, val) => setForms(fs => ({ ...fs, [serviceType]: { ...fs[serviceType], [key]: val } }))
+  const setNested = (parent, key, val) => setForms(fs => ({ ...fs, [serviceType]: { ...fs[serviceType], [parent]: { ...(fs[serviceType][parent] || {}), [key]: val } } }))
   const setAddOn = (key, val) => setNested('addOns', key, val)
 
   const handleSave = () => {
@@ -414,8 +536,7 @@ export default function Settings() {
   }
 
   const handleReset = () => {
-    const defaults = DEFAULTS_BY_TYPE[serviceType]
-    setForm(defaults)
+    setForms(fs => ({ ...fs, [serviceType]: DEFAULTS_BY_TYPE[serviceType] }))
     resetToDefaults(serviceType)
   }
 
@@ -427,6 +548,9 @@ export default function Settings() {
       </div>
 
       <div style={{ maxWidth: 680 }}>
+
+        {/* Business Profile + Integrations */}
+        <BusinessProfile />
 
         {/* Service Type selector */}
         <div className="card mb-4">

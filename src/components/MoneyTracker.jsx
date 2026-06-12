@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { DollarSign, Plus, TrendingUp, AlertTriangle, Car } from 'lucide-react'
 import { tipLog, mileageLog, clients, workers, IRS_RATE } from '../data/sampleData.js'
+import { useProfile } from '../context/ProfileContext.jsx'
 
 function daysSince(dateStr) {
   return Math.floor((new Date() - new Date(dateStr)) / 86400000)
@@ -33,7 +34,7 @@ function TipsTab() {
       amount: parseFloat(form.amount),
       method: form.method,
       workerId: null,
-      workerName: form.workerName || 'Ashley',
+      workerName: form.workerName || profile.ownerName || 'Owner',
     }
     setLog(l => [newEntry, ...l])
     setForm({ clientName: '', amount: '', method: 'Cash', workerName: '' })
@@ -431,6 +432,7 @@ function RaiseDetectorTab() {
 const TABS = ['Tips', 'Mileage', 'Tax Snapshot', 'Raise Detector']
 
 export default function MoneyTracker() {
+  const { profile } = useProfile()
   const [activeTab, setActiveTab] = useState('Tips')
 
   return (
