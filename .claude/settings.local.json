@@ -13,7 +13,22 @@
       "Bash(git rm *)",
       "Bash(git commit -m ' *)",
       "Bash(npx vercel *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(npx vite *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:4175)",
+      "Bash(node -e ' *)",
+      "Bash(pkill -f \"vite preview\")",
+      "Bash(git commit *)",
+      "Skill(run)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5174)",
+      "Bash(npx playwright *)",
+      "Bash(curl *)",
+      "Bash(node -e \"require.resolve\\('playwright'\\)\")",
+      "Bash(npx --yes playwright --version)",
+      "Bash(npx playwright@latest --version)",
+      "Bash(npx playwright@latest test --version)",
+      "Bash(node *)"
     ]
   }
 }
