@@ -3,6 +3,7 @@ import { Sun, Moon, Globe, Home, CalendarDays, DollarSign, Users, MoreHorizontal
 import { PricingProvider } from './context/PricingContext.jsx'
 import { ServiceProvider } from './context/ServiceContext.jsx'
 import { SubscriptionProvider, useSubscription } from './context/SubscriptionContext.jsx'
+import { LocationProvider } from './context/LocationContext.jsx'
 import { upcomingJobs as initialJobs } from './data/sampleData.js'
 
 import Sidebar        from './components/Sidebar.jsx'
@@ -23,6 +24,7 @@ import MovingModule   from './components/MovingModule.jsx'
 import HandymanModule from './components/HandymanModule.jsx'
 import AutoComms      from './components/AutoComms.jsx'
 import ContractorTax  from './components/ContractorTax.jsx'
+import MileageTracker from './components/MileageTracker.jsx'
 
 function SubscriptionBanner() {
   const { state, graceDays, retrying, retryPayment, reactivate, setState } = useSubscription()
@@ -178,11 +180,13 @@ function AppInner() {
       case 'handyman':          return <HandymanModule />
       case 'auto-comms':        return <AutoComms jobs={jobs} onUpdateComm={handleUpdateComm} />
       case 'contractor-tax':    return <ContractorTax />
+      case 'mileage':           return <MileageTracker />
       default:                  return <Dashboard {...jobProps} onSendWaiver={handleSendWaiver} />
     }
   }
 
   return (
+    <LocationProvider>
     <ServiceProvider>
       <PricingProvider>
         <div className="app">
@@ -248,6 +252,7 @@ function AppInner() {
         )}
       </PricingProvider>
     </ServiceProvider>
+    </LocationProvider>
   )
 }
 

@@ -1,26 +1,59 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 
 const SubscriptionContext = createContext(null)
 
 export const SUBSCRIPTION_STATES = {
-  active:       { label: 'Active',       color: 'var(--success)',  bg: 'var(--bg-card)' },
-  grace_period: { label: 'Grace Period', color: '#9A7020',         bg: '#FFF8EE' },
-  suspended:    { label: 'Suspended',    color: 'var(--danger)',   bg: '#FAEAEA' },
+  active:       { label: 'Active',       color: 'var(--success)',    bg: 'var(--bg-card)' },
+  grace_period: { label: 'Grace Period', color: '#9A7020',           bg: '#FFF8EE' },
+  suspended:    { label: 'Suspended',    color: 'var(--danger)',     bg: '#FAEAEA' },
   cancelled:    { label: 'Cancelled',    color: 'var(--text-muted)', bg: 'var(--bg-input)' },
 }
 
+const GRACE_PERIOD_DAYS = 3
+
+function getRemainingGraceDays(expiryIso) {
+  if (!expiryIso) return 0
+  const msRemaining = new Date(expiryIso) - new Date()
+  return Math.max(0, Math.ceil(msRemaining / (1000 * 60 * 60 * 24)))
+}
+
+function loadFromStorage(key, fallback) {
+  try { return localStorage.getItem(key) ?? fallback } catch { return fallback }
+}
+
 export function SubscriptionProvider({ children }) {
-  const [state, setState] = useState(() => localStorage.getItem('cleanos_sub_state') || 'active')
-  const [graceDays, setGraceDays] = useState(() => parseInt(localStorage.getItem('cleanos_grace_days') || '3', 10))
-  const [retrying, setRetrying] = useState(false)
+  const [state, setState_]           = useState(() => loadFromStorage('cleanos_sub_state', 'active'))
+  const [graceExpiry, setGraceExpiry_] = useState(() => loadFromStorage('cleanos_grace_expiry', null))
+  const [retrying, setRetrying]      = useState(false)
 
-  useEffect(() => {
-    localStorage.setItem('cleanos_sub_state', state)
-  }, [state])
+  const graceDays = getRemainingGraceDays(graceExpiry)
 
+  const setState = useCallback((s) => {
+    setState_(s)
+    localStorage.setItem('cleanos_sub_state', s)
+  }, [])
+
+  const setGraceExpiry = useCallback((dt) => {
+    setGraceExpiry_(dt)
+    if (dt) localStorage.setItem('cleanos_grace_expiry', dt)
+    else localStorage.removeItem('cleanos_grace_expiry')
+  }, [])
+
+  // Auto-advance: grace period → suspended when expiry passes
   useEffect(() => {
-    localStorage.setItem('cleanos_grace_days', String(graceDays))
-  }, [graceDays])
+    if (state !== 'grace_period' || !graceExpiry) return
+    if (graceDays === 0) {
+      setState('suspended')
+      setGraceExpiry(null)
+      return
+    }
+    const msToExpiry = new Date(graceExpiry) - new Date()
+    const timer = setTimeout(() => {
+      setState('suspended')
+      setGraceExpiry(null)
+    }, msToExpiry + 1000)
+    return () => clearTimeout(timer)
+  }, [state, graceExpiry, graceDays, setState, setGraceExpiry])
 
   const isReadOnly = state === 'suspended' || state === 'cancelled'
 
@@ -29,7 +62,7 @@ export function SubscriptionProvider({ children }) {
     await new Promise(r => setTimeout(r, 1800))
     setRetrying(false)
     setState('active')
-    setGraceDays(3)
+    setGraceExpiry(null)
   }
 
   const reactivate = async () => {
@@ -37,20 +70,22 @@ export function SubscriptionProvider({ children }) {
     await new Promise(r => setTimeout(r, 1800))
     setRetrying(false)
     setState('active')
-    setGraceDays(3)
+    setGraceExpiry(null)
   }
 
   const simulateFailedPayment = () => {
+    const expiry = new Date()
+    expiry.setDate(expiry.getDate() + GRACE_PERIOD_DAYS)
     setState('grace_period')
-    setGraceDays(3)
+    setGraceExpiry(expiry.toISOString())
   }
 
-  const simulateSuspend = () => setState('suspended')
-  const simulateCancel  = () => setState('cancelled')
+  const simulateSuspend  = () => { setState('suspended');  setGraceExpiry(null) }
+  const simulateCancel   = () => { setState('cancelled');  setGraceExpiry(null) }
 
   return (
     <SubscriptionContext.Provider value={{
-      state, setState, graceDays, setGraceDays,
+      state, setState, graceDays, graceExpiry,
       isReadOnly, retrying,
       retryPayment, reactivate,
       simulateFailedPayment, simulateSuspend, simulateCancel,

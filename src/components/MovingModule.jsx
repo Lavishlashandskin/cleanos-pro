@@ -1,6 +1,7 @@
-import { useState } from 'react'
-import { Truck, Plus, MapPin, Users, Package, Calculator, CheckCircle2, Clock, ChevronDown, ChevronUp, X } from 'lucide-react'
+import { useState, useCallback } from 'react'
+import { Truck, Plus, MapPin, Users, Package, Calculator, CheckCircle2, Clock, ChevronDown, ChevronUp, X, Navigation, Loader } from 'lucide-react'
 import { sampleMoves, sampleMoveInventory } from '../data/sampleData.js'
+import { getDistanceMiles, isConfigured as mapsConfigured } from '../lib/googleMaps.js'
 
 const SIZE_CF = { small: 2, medium: 10, large: 35, xl: 65 }
 
@@ -43,10 +44,35 @@ function MovesTab() {
   const [moves, setMoves] = useState(sampleMoves)
   const [showForm, setShowForm] = useState(false)
   const [expanded, setExpanded] = useState(null)
+  const [calcState, setCalcState] = useState('idle') // idle | calculating | done | error
+  const [calcMsg, setCalcMsg] = useState('')
   const [form, setForm] = useState({
     clientName: '', email: '', origin: '', destination: '',
-    moveDate: '', rooms: '', sqft: '', access: 'ground', floors: '1', distance: '', notes: '',
+    moveDate: '', rooms: '', sqft: '', access: 'ground', floors: '1', distance: '', durationText: '', notes: '',
   })
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const handleCalcDistance = useCallback(async () => {
+    if (!form.origin || !form.destination) { setCalcMsg('Enter both origin and destination first.'); return }
+    setCalcState('calculating')
+    setCalcMsg('Calculating via Google Maps…')
+    try {
+      const result = await getDistanceMiles(form.origin, form.destination)
+      if (result) {
+        set('distance', String(result.miles))
+        set('durationText', result.durationText)
+        setCalcState('done')
+        setCalcMsg(`${result.miles} mi · ${result.durationText} drive`)
+      } else {
+        setCalcState('error')
+        setCalcMsg('Could not calculate — enter mileage manually.')
+      }
+    } catch {
+      setCalcState('error')
+      setCalcMsg('Error calculating distance.')
+    }
+  }, [form.origin, form.destination])
 
   const addMove = () => {
     if (!form.clientName || !form.origin || !form.destination || !form.moveDate) return
@@ -58,7 +84,8 @@ function MovesTab() {
       floors: parseInt(form.floors) || 1, distance: parseFloat(form.distance) || 0,
       crew, status: 'scheduled',
     }])
-    setForm({ clientName: '', email: '', origin: '', destination: '', moveDate: '', rooms: '', sqft: '', access: 'ground', floors: '1', distance: '', notes: '' })
+    setForm({ clientName: '', email: '', origin: '', destination: '', moveDate: '', rooms: '', sqft: '', access: 'ground', floors: '1', distance: '', durationText: '', notes: '' })
+    setCalcState('idle'); setCalcMsg('')
     setShowForm(false)
   }
 
@@ -91,11 +118,32 @@ function MovesTab() {
             <div className="form-group"><label className="form-label">Client Name</label><input value={form.clientName} onChange={e => setForm(f => ({...f, clientName: e.target.value}))} placeholder="Full name" /></div>
             <div className="form-group"><label className="form-label">Client Email</label><input value={form.email} onChange={e => setForm(f => ({...f, email: e.target.value}))} placeholder="email@example.com" /></div>
           </div>
-          <div className="form-group"><label className="form-label">Origin Address</label><input value={form.origin} onChange={e => setForm(f => ({...f, origin: e.target.value}))} placeholder="Full pickup address" /></div>
-          <div className="form-group"><label className="form-label">Destination Address</label><input value={form.destination} onChange={e => setForm(f => ({...f, destination: e.target.value}))} placeholder="Full drop-off address" /></div>
+          <div className="form-group"><label className="form-label">Origin Address</label><input value={form.origin} onChange={e => set('origin', e.target.value)} placeholder="Full pickup address (street, city, state ZIP)" /></div>
+          <div className="form-group"><label className="form-label">Destination Address</label><input value={form.destination} onChange={e => set('destination', e.target.value)} placeholder="Full drop-off address (street, city, state ZIP)" /></div>
+          {mapsConfigured() && (
+            <div style={{ marginBottom: 12 }}>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={handleCalcDistance}
+                disabled={calcState === 'calculating' || !form.origin || !form.destination}
+              >
+                {calcState === 'calculating'
+                  ? <><Loader size={12} /> Calculating…</>
+                  : <><Navigation size={12} /> Calculate Distance (Maps)</>}
+              </button>
+              {calcMsg && (
+                <span style={{ marginLeft: 10, fontSize: 12, color: calcState === 'done' ? 'var(--success)' : calcState === 'error' ? 'var(--danger)' : 'var(--text-muted)' }}>
+                  {calcMsg}
+                </span>
+              )}
+            </div>
+          )}
           <div className="form-row">
-            <div className="form-group"><label className="form-label">Move Date</label><input type="date" value={form.moveDate} onChange={e => setForm(f => ({...f, moveDate: e.target.value}))} /></div>
-            <div className="form-group"><label className="form-label">Distance (miles)</label><input type="number" value={form.distance} onChange={e => setForm(f => ({...f, distance: e.target.value}))} placeholder="0" /></div>
+            <div className="form-group"><label className="form-label">Move Date</label><input type="date" value={form.moveDate} onChange={e => set('moveDate', e.target.value)} /></div>
+            <div className="form-group">
+              <label className="form-label">Distance (miles)</label>
+              <input type="number" value={form.distance} onChange={e => set('distance', e.target.value)} placeholder="0" />
+            </div>
           </div>
           <div className="form-row-3">
             <div className="form-group"><label className="form-label">Rooms</label><input type="number" value={form.rooms} onChange={e => setForm(f => ({...f, rooms: e.target.value}))} placeholder="0" /></div>
@@ -123,7 +171,7 @@ function MovesTab() {
                 <span className="font-bold" style={{ fontSize: 15 }}>{move.clientName}</span>
                 <span className={`badge ${STATUS_BADGE[move.status] || 'badge-neutral'}`}>{move.status}</span>
               </div>
-              <div className="text-xs text-muted">{move.moveDate} · {move.rooms} rooms · {move.distance} mi · {move.crew} movers</div>
+              <div className="text-xs text-muted">{move.moveDate} · {move.rooms} rooms · {move.distance} mi{move.durationText ? ` · ${move.durationText}` : ''} · {move.crew} movers</div>
             </div>
             {expanded === move.id ? <ChevronUp size={16} className="text-muted" /> : <ChevronDown size={16} className="text-muted" />}
           </div>

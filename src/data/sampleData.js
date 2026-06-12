@@ -348,18 +348,26 @@ export const tipLog = [
 ]
 
 export const mileageLog = [
-  { id: 1, date: "2026-06-09", from: "Home", to: "4821 Meadow Creek Dr (Walsh)", miles: 12.3, purpose: "Residential cleaning" },
-  { id: 2, date: "2026-06-09", from: "Walsh", to: "1740 College Pkwy (Sharma)", miles: 8.1, purpose: "Residential cleaning" },
-  { id: 3, date: "2026-06-07", from: "Home", to: "Anytime Fitness Red Rock", miles: 15.4, purpose: "Commercial cleaning" },
-  { id: 4, date: "2026-06-07", from: "Anytime Fitness", to: "3390 Desert Wind Dr (Morales)", miles: 5.8, purpose: "Residential cleaning" },
-  { id: 5, date: "2026-06-06", from: "Home", to: "9210 Quail Ridge Dr (Westbrook)", miles: 9.2, purpose: "Residential cleaning" },
-  { id: 6, date: "2026-06-06", from: "Westbrook", to: "5560 Sage Summit Ct (Fontaine)", miles: 11.7, purpose: "Residential cleaning" },
-  { id: 7, date: "2026-06-05", from: "Home", to: "Anytime Fitness Midtown", miles: 12.1, purpose: "Commercial cleaning" },
-  { id: 8, date: "2026-06-04", from: "Home", to: "790 Sierra Vista Blvd (Holloway)", miles: 14.6, purpose: "Residential cleaning" },
-  { id: 9, date: "2026-06-03", from: "Home", to: "620 Lakeridge Dr (Nakamura)", miles: 8.9, purpose: "Residential cleaning" },
-  { id: 10, date: "2026-06-03", from: "Nakamura", to: "2103 Pinecrest Rd (Okonkwo)", miles: 10.4, purpose: "Residential cleaning" },
-  { id: 11, date: "2026-06-02", from: "Home", to: "7820 Autumn Sage Dr (Testa)", miles: 13.8, purpose: "Residential cleaning" },
-  { id: 12, date: "2026-05-31", from: "Home", to: "4401 Vista Hills Dr (Mills)", miles: 16.2, purpose: "Residential cleaning" },
+  { id: 1,  workerId: 1, date: "2026-06-11", from: "Home",                              to: "4821 Meadow Creek Dr (Walsh)",         miles: 12.3, purpose: "Residential cleaning", method: "gps" },
+  { id: 2,  workerId: 2, date: "2026-06-11", from: "Home",                              to: "1740 College Pkwy #204 (Sharma)",      miles: 8.1,  purpose: "Residential cleaning", method: "gps" },
+  { id: 3,  workerId: 1, date: "2026-06-12", from: "Home",                              to: "2620 Red Rock Rd (Anytime Fitness)",   miles: 15.4, purpose: "Commercial cleaning",  method: "gps" },
+  { id: 4,  workerId: 3, date: "2026-06-12", from: "Home",                              to: "3390 Desert Wind Dr (Morales)",        miles: 5.8,  purpose: "Residential cleaning", method: "gps" },
+  { id: 5,  workerId: 1, date: "2026-06-09", from: "Home",                              to: "9210 Quail Ridge Dr (Westbrook)",      miles: 9.2,  purpose: "Residential cleaning", method: "gps" },
+  { id: 6,  workerId: 3, date: "2026-06-09", from: "Home",                              to: "5560 Sage Summit Ct (Fontaine)",       miles: 11.7, purpose: "Residential cleaning", method: "manual" },
+  { id: 7,  workerId: 1, date: "2026-06-08", from: "Home",                              to: "810 Keystone Ave (Anytime Midtown)",   miles: 12.1, purpose: "Commercial cleaning",  method: "gps" },
+  { id: 8,  workerId: 1, date: "2026-06-07", from: "Home",                              to: "790 Sierra Vista Blvd (Holloway)",     miles: 14.6, purpose: "Residential cleaning", method: "gps" },
+  { id: 9,  workerId: 3, date: "2026-06-07", from: "Home",                              to: "620 Lakeridge Dr (Nakamura)",          miles: 8.9,  purpose: "Residential cleaning", method: "gps" },
+  { id: 10, workerId: 2, date: "2026-06-07", from: "Home",                              to: "2103 Pinecrest Rd (Okonkwo)",          miles: 10.4, purpose: "Residential cleaning", method: "manual" },
+  { id: 11, workerId: 1, date: "2026-06-05", from: "Home",                              to: "7820 Autumn Sage Dr (Testa)",          miles: 13.8, purpose: "Residential cleaning", method: "gps" },
+  { id: 12, workerId: 2, date: "2026-06-04", from: "Home",                              to: "4821 Summit Ridge Ct (Airbnb)",        miles: 16.2, purpose: "Airbnb turnover",      method: "gps" },
+  { id: 13, workerId: 1, date: "2026-05-31", from: "Home",                              to: "4401 Vista Hills Dr (Mills)",          miles: 14.9, purpose: "Residential cleaning", method: "gps" },
+  { id: 14, workerId: 3, date: "2026-05-30", from: "Home",                              to: "620 Lakeridge Dr (Nakamura)",          miles: 8.9,  purpose: "Residential cleaning", method: "gps" },
+  { id: 15, workerId: 2, date: "2026-05-29", from: "Home",                              to: "4182 Summit Ridge Ct (Airbnb)",        miles: 16.5, purpose: "Airbnb turnover",      method: "gps" },
+  { id: 16, workerId: 1, date: "2026-05-28", from: "4821 Meadow Creek Dr",              to: "790 Sierra Vista Blvd (Holloway)",     miles: 6.2,  purpose: "Residential cleaning", method: "gps" },
+  { id: 17, workerId: 3, date: "2026-05-27", from: "Home",                              to: "2103 Pinecrest Rd (Okonkwo)",          miles: 11.3, purpose: "Residential cleaning", method: "gps" },
+  { id: 18, workerId: 1, date: "2026-05-22", from: "Home",                              to: "7820 Autumn Sage Dr (Testa)",          miles: 13.8, purpose: "Residential cleaning", method: "gps" },
+  { id: 19, workerId: 2, date: "2026-05-21", from: "Home",                              to: "9210 Quail Ridge Dr (Westbrook)",      miles: 9.2,  purpose: "Residential cleaning", method: "manual" },
+  { id: 20, workerId: 1, date: "2026-05-14", from: "Home",                              to: "4821 Meadow Creek Dr (Walsh)",         miles: 12.3, purpose: "Residential cleaning", method: "gps" },
 ]
 
 export const monthlyRevenue = [

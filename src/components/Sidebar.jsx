@@ -2,7 +2,7 @@ import { useState } from 'react'
 import {
   LayoutDashboard, Sparkles, MessageSquareWarning, CalendarDays,
   Package, DollarSign, Users, Heart, BarChart3, Zap, Settings,
-  CreditCard, Menu, X, Truck, Wrench, MessageSquare, FileText,
+  CreditCard, Menu, X, Truck, Wrench, MessageSquare, FileText, Car,
 } from 'lucide-react'
 import { useService, SERVICE_CONFIG } from '../context/ServiceContext.jsx'
 
@@ -24,6 +24,7 @@ const NAV_CLEANING = [
     { id: 'clients',          label: 'Client Experience',  icon: Heart },
     { id: 'analytics',        label: 'Analytics',          icon: BarChart3 },
     { id: 'contractor-tax',   label: '1099 Tracking',      icon: FileText },
+    { id: 'mileage',          label: 'Mileage Tracker',    icon: Car },
   ]},
   { section: 'SYSTEM', items: [
     { id: 'settings', label: 'Pricing & Settings', icon: Settings },
@@ -46,6 +47,7 @@ const NAV_MOVING = [
     { id: 'clients',        label: 'Clients',        icon: Heart },
     { id: 'analytics',      label: 'Analytics',      icon: BarChart3 },
     { id: 'contractor-tax', label: '1099 Tracking',  icon: FileText },
+    { id: 'mileage',        label: 'Mileage Tracker', icon: Car },
   ]},
   { section: 'SYSTEM', items: [
     { id: 'settings', label: 'Settings', icon: Settings },
@@ -68,6 +70,7 @@ const NAV_HANDYMAN = [
     { id: 'clients',        label: 'Clients',        icon: Heart },
     { id: 'analytics',      label: 'Analytics',      icon: BarChart3 },
     { id: 'contractor-tax', label: '1099 Tracking',  icon: FileText },
+    { id: 'mileage',        label: 'Mileage Tracker', icon: Car },
   ]},
   { section: 'SYSTEM', items: [
     { id: 'settings', label: 'Settings', icon: Settings },

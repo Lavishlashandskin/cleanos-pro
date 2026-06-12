@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Check, RotateCcw, AlertTriangle, CreditCard, ShieldCheck } from 'lucide-react'
+import { Check, RotateCcw, AlertTriangle, CreditCard, ShieldCheck, MapPin, Plus, Trash2, Globe } from 'lucide-react'
 import { usePricing, DEFAULT_PRICING } from '../context/PricingContext.jsx'
 import { useService, SERVICE_CONFIG } from '../context/ServiceContext.jsx'
 import { useSubscription, SUBSCRIPTION_STATES } from '../context/SubscriptionContext.jsx'
+import { useLocation } from '../context/LocationContext.jsx'
+import { isConfigured as mapsConfigured } from '../lib/googleMaps.js'
 
 const PriceField = ({ label, value, onChange, suffix = '/visit', prefix = '$' }) => (
   <div className="form-group" style={{ marginBottom: 0 }}>
@@ -19,6 +21,130 @@ const PriceField = ({ label, value, onChange, suffix = '/visit', prefix = '$' })
     </div>
   </div>
 )
+
+const PALETTE = ['#6E9E8A','#5E8FB5','#C8A040','#9B7BB0','#A86B6B','#7B9E6E','#C47D5A','#4A8FA8','#A89B4A','#7A7AB0']
+
+function ZoneManager() {
+  const { zones, businessInfo, addZone, updateZone, removeZone, setBusinessInfo } = useLocation()
+  const [showForm, setShowForm] = useState(false)
+  const [bizForm, setBizForm] = useState(businessInfo)
+  const [bizSaved, setBizSaved] = useState(false)
+  const [zoneForm, setZoneForm] = useState({ label: '', zipsRaw: '', keywordsRaw: '', color: PALETTE[0] })
+
+  const handleSaveBiz = () => {
+    setBusinessInfo(bizForm)
+    setBizSaved(true)
+    setTimeout(() => setBizSaved(false), 2000)
+  }
+
+  const handleAddZone = () => {
+    if (!zoneForm.label) return
+    addZone(zoneForm)
+    setZoneForm({ label: '', zipsRaw: '', keywordsRaw: '', color: PALETTE[zones.length % PALETTE.length] })
+    setShowForm(false)
+  }
+
+  return (
+    <div className="card mb-4">
+      <div className="card-title" style={{ marginBottom: 4 }}>
+        <MapPin size={14} style={{ display: 'inline', marginRight: 6 }} />Service Zones
+      </div>
+      <p className="text-sm text-muted mb-4">Define the neighborhoods or zones you serve. Jobs auto-match to zones by ZIP code or address keywords for route optimization.</p>
+
+      {/* Business base address */}
+      <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '14px 16px', marginBottom: 16 }}>
+        <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Business Info</div>
+        <div className="form-row">
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Business Name</label>
+            <input value={bizForm.businessName || ''} onChange={e => setBizForm(f => ({ ...f, businessName: e.target.value }))} placeholder="e.g. Reno Reset Cleaning" />
+          </div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">City / Market</label>
+            <input value={bizForm.city || ''} onChange={e => setBizForm(f => ({ ...f, city: e.target.value }))} placeholder="e.g. Reno, NV" />
+          </div>
+        </div>
+        <div className="form-group" style={{ marginBottom: 8, marginTop: 12 }}>
+          <label className="form-label">Base Address (your home/office — used as route origin)</label>
+          <input value={bizForm.baseAddress || ''} onChange={e => setBizForm(f => ({ ...f, baseAddress: e.target.value }))} placeholder="e.g. 123 Main St, Reno NV 89501" />
+        </div>
+        <button className="btn btn-secondary btn-sm" onClick={handleSaveBiz}>
+          {bizSaved ? <><Check size={12} /> Saved</> : 'Save Business Info'}
+        </button>
+      </div>
+
+      {/* Google Maps API key notice */}
+      {!mapsConfigured() && (
+        <div className="alert alert-info mb-4" style={{ fontSize: 12 }}>
+          <Globe size={13} />
+          <div>
+            <strong>Google Maps not configured.</strong> Add <code>VITE_GOOGLE_MAPS_KEY=your_key</code> to your <code>.env</code> file to enable live geocoding, GPS distance calculation, and real route optimization.
+            ZIP codes and address keywords work without a key.
+          </div>
+        </div>
+      )}
+
+      {/* Zone list */}
+      {zones.length === 0 && !showForm && (
+        <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--text-muted)', fontSize: 13 }}>No zones configured yet.</div>
+      )}
+
+      {zones.map(z => (
+        <div key={z.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
+          <span style={{ width: 12, height: 12, borderRadius: '50%', background: z.color, flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: 13 }}>{z.label}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+              {z.zips?.length ? `ZIPs: ${z.zips.join(', ')}` : 'No ZIPs'}
+              {z.keywords?.length ? ` · Keywords: ${z.keywords.slice(0, 3).join(', ')}${z.keywords.length > 3 ? '…' : ''}` : ''}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {PALETTE.map(c => (
+              <button key={c} onClick={() => updateZone(z.id, { color: c })} style={{ width: 14, height: 14, borderRadius: '50%', background: c, border: z.color === c ? '2px solid var(--text-primary)' : '1px solid transparent', cursor: 'pointer' }} />
+            ))}
+          </div>
+          <button onClick={() => removeZone(z.id)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}>
+            <Trash2 size={13} />
+          </button>
+        </div>
+      ))}
+
+      {showForm && (
+        <div style={{ marginTop: 14, padding: '14px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+          <div className="form-row">
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Zone Name <span style={{ color: 'var(--danger)' }}>*</span></label>
+              <input value={zoneForm.label} onChange={e => setZoneForm(f => ({ ...f, label: e.target.value }))} placeholder="e.g. NW Reno, Downtown, Eastside" />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">ZIP Codes (comma-separated)</label>
+              <input value={zoneForm.zipsRaw} onChange={e => setZoneForm(f => ({ ...f, zipsRaw: e.target.value }))} placeholder="e.g. 89523, 89519" />
+            </div>
+          </div>
+          <div className="form-group" style={{ marginTop: 10 }}>
+            <label className="form-label">Address Keywords (comma-separated — matches addresses containing these)</label>
+            <input value={zoneForm.keywordsRaw} onChange={e => setZoneForm(f => ({ ...f, keywordsRaw: e.target.value }))} placeholder="e.g. summit ridge, pinecrest, autumn sage" />
+          </div>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 10 }}>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Color:</span>
+            {PALETTE.map(c => (
+              <button key={c} onClick={() => setZoneForm(f => ({ ...f, color: c }))} style={{ width: 18, height: 18, borderRadius: '50%', background: c, border: zoneForm.color === c ? '2px solid var(--text-primary)' : '1px solid transparent', cursor: 'pointer' }} />
+            ))}
+          </div>
+          <div className="flex gap-3 mt-3">
+            <button className="btn btn-primary btn-sm" disabled={!zoneForm.label} onClick={handleAddZone}><Check size={13} /> Add Zone</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setShowForm(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      <button className="btn btn-secondary btn-sm mt-4" onClick={() => setShowForm(s => !s)}>
+        <Plus size={13} /> Add Zone
+      </button>
+    </div>
+  )
+}
 
 export default function Settings() {
   const { pricing, savePricing } = usePricing()
@@ -110,6 +236,9 @@ export default function Settings() {
             <PriceField label="Garage" value={form.addOns.garage} onChange={v => setAddOn('garage', v)} suffix="" />
           </div>
         </div>
+
+        {/* Service Zones */}
+        <ZoneManager />
 
         {/* Save */}
         <div className="flex gap-3 items-center mb-4">

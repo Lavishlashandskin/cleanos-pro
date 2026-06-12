@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { CalendarDays, Sparkles, MapPin, Clock, User, CalendarPlus, Map, Lightbulb, ChevronRight, RefreshCw, Plus, Trash2, Check, ToggleLeft, ToggleRight } from 'lucide-react'
 import { clients, workers, recurringTemplates as defaultTemplates } from '../data/sampleData.js'
 import { optimizeSchedule, suggestBookingDay } from '../lib/aiPlaceholders.js'
-import { NEIGHBORHOODS, getJobNeighborhood, groupJobsByNeighborhood } from '../lib/neighborhoods.js'
+import { getJobZone, groupJobsByZone } from '../lib/neighborhoods.js'
+import { useLocation } from '../context/LocationContext.jsx'
+import { optimizeRouteOrder, isConfigured as mapsConfigured } from '../lib/googleMaps.js'
 
 const TYPE_COLORS = { residential: 'badge-neutral', commercial: 'badge-blue', airbnb: 'badge-gold', moveout: 'badge-warning' }
 const TYPE_LABELS = { residential: 'Residential', commercial: 'Commercial', airbnb: 'Airbnb', moveout: 'Move-Out' }
@@ -31,8 +33,8 @@ function getClientNameById(clientId) {
 }
 
 // ── Job row shared component ──────────────────────────────────────────────────
-function JobRow({ job, onJobClick, showNeighborhoodLabel = false }) {
-  const neighborhood = getJobNeighborhood(job, clients)
+function JobRow({ job, onJobClick, zones, showNeighborhoodLabel = false }) {
+  const neighborhood = getJobZone(job, zones, clients)
   return (
     <div
       className="job-row clickable"
@@ -53,6 +55,7 @@ function JobRow({ job, onJobClick, showNeighborhoodLabel = false }) {
               · {neighborhood.label}
             </span>
           )}
+
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
@@ -67,6 +70,7 @@ function JobRow({ job, onJobClick, showNeighborhoodLabel = false }) {
 
 // ── Schedule tab ──────────────────────────────────────────────────────────────
 function ScheduleTab({ jobs, onJobClick }) {
+  const { zones } = useLocation()
   const [selectedDay, setSelectedDay] = useState('Thu Jun 11')
   const [optimizing, setOptimizing] = useState(false)
   const [optimizeResult, setOptimizeResult] = useState(null)
@@ -79,8 +83,33 @@ function ScheduleTab({ jobs, onJobClick }) {
     if (dayJobs.length < 2) return
     setOptimizing(true)
     setOptimizeResult(null)
+
+    // Use Google Maps Distance Matrix if configured, else fall back to AI placeholder
+    if (mapsConfigured()) {
+      const addresses = dayJobs.map(j => j.address)
+      const result = await optimizeRouteOrder(addresses)
+      if (result) {
+        const reordered = result.order.map(i => dayJobs[i])
+        const savedMin = result.savedMin ?? Math.round(result.savedMiles * 2.5)
+        const fuelSaved = (result.savedMiles * 0.14).toFixed(2)
+        setOptimizeResult({
+          optimizedJobs: reordered,
+          savings: {
+            miles: result.savedMiles,
+            time: `${savedMin} min`,
+            fuelCost: `$${fuelSaved}`,
+          },
+          message: `Optimized your ${dayJobs.length}-job day using live traffic data. Saved ${result.savedMiles} miles and ~${savedMin} minutes.`,
+          source: 'maps',
+        })
+        setOptimizing(false)
+        return
+      }
+    }
+
+    // Fallback to AI placeholder
     const res = await optimizeSchedule(dayJobs)
-    setOptimizeResult(res)
+    setOptimizeResult({ ...res, source: 'ai' })
     setOptimizing(false)
   }
 
@@ -134,7 +163,7 @@ function ScheduleTab({ jobs, onJobClick }) {
           {dayJobs.length === 0 && (
             <div className="empty-state"><CalendarDays size={28} style={{ margin: '0 auto' }} /><p>No jobs scheduled.</p></div>
           )}
-          {dayJobs.map(job => <JobRow key={job.id} job={job} onJobClick={onJobClick} showNeighborhoodLabel />)}
+          {dayJobs.map(job => <JobRow key={job.id} job={job} zones={zones} onJobClick={onJobClick} showNeighborhoodLabel />)}
 
           {optimizeResult && (
             <div className="alert alert-success mt-3" style={{ marginBottom: 0 }}>
@@ -198,25 +227,30 @@ function ScheduleTab({ jobs, onJobClick }) {
 
 // ── Neighborhoods tab ─────────────────────────────────────────────────────────
 function NeighborhoodsTab({ jobs, onJobClick }) {
-  const groups = groupJobsByNeighborhood(jobs, clients)
-  const activeNeighborhoods = NEIGHBORHOODS.filter(n => groups[n.id])
+  const { zones } = useLocation()
+  const groups = groupJobsByZone(jobs, zones, clients)
+  const activeNeighborhoods = zones.filter(n => groups[n.id])
 
   return (
     <div>
       <div className="card mb-4">
-        <div className="card-title" style={{ marginBottom: 12 }}>Neighborhood Legend</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-          {NEIGHBORHOODS.map(n => {
-            const group = groups[n.id]
-            return (
-              <div key={n.id} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '5px 12px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 20, opacity: group ? 1 : 0.38 }}>
-                <span style={{ width: 9, height: 9, borderRadius: '50%', background: n.color, flexShrink: 0, display: 'inline-block' }} />
-                <span style={{ fontSize: 12, fontWeight: 600, color: group ? 'var(--text-primary)' : 'var(--text-muted)' }}>{n.label}</span>
-                {group && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{group.jobs.length}</span>}
-              </div>
-            )
-          })}
-        </div>
+        <div className="card-title" style={{ marginBottom: 12 }}>Service Zone Legend</div>
+        {zones.length === 0 ? (
+          <p className="text-xs text-muted">No zones configured. Add service zones in Settings → Service Zones.</p>
+        ) : (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            {zones.map(n => {
+              const group = groups[n.id]
+              return (
+                <div key={n.id} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '5px 12px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 20, opacity: group ? 1 : 0.38 }}>
+                  <span style={{ width: 9, height: 9, borderRadius: '50%', background: n.color, flexShrink: 0, display: 'inline-block' }} />
+                  <span style={{ fontSize: 12, fontWeight: 600, color: group ? 'var(--text-primary)' : 'var(--text-muted)' }}>{n.label}</span>
+                  {group && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{group.jobs.length}</span>}
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       <div className="card mb-4">
@@ -227,7 +261,7 @@ function NeighborhoodsTab({ jobs, onJobClick }) {
             <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-muted)' }}>Area</span>
           </div>
           {WEEK_ABBREVS.map(day => <div key={day} className="density-header-cell">{day}</div>)}
-          {NEIGHBORHOODS.map(n => {
+          {zones.map(n => {
             const group = groups[n.id]
             return (
               <div key={n.id} className="density-row-wrapper">
@@ -272,7 +306,7 @@ function NeighborhoodsTab({ jobs, onJobClick }) {
                   ))}
                 </div>
               </div>
-              {group.jobs.map(job => <JobRow key={job.id} job={job} onJobClick={onJobClick} />)}
+              {group.jobs.map(job => <JobRow key={job.id} job={job} zones={zones} onJobClick={onJobClick} />)}
             </div>
           )
         })}
@@ -283,16 +317,23 @@ function NeighborhoodsTab({ jobs, onJobClick }) {
 
 // ── Smart Booking tab ─────────────────────────────────────────────────────────
 function SmartBookingTab({ jobs }) {
-  const groups = groupJobsByNeighborhood(jobs, clients)
+  const { zones, resolveZone } = useLocation()
+  const groups = groupJobsByZone(jobs, zones, clients)
   const [form, setForm] = useState({ clientName: '', address: '', neighborhoodId: '' })
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
 
   const handleFind = async () => {
-    if (!form.neighborhoodId) return
+    let zoneId = form.neighborhoodId
+    // If address given but no zone selected, try to auto-resolve
+    if (!zoneId && form.address) {
+      const resolved = await resolveZone(form.address)
+      if (resolved) { zoneId = resolved.id; setForm(f => ({ ...f, neighborhoodId: resolved.id })) }
+    }
+    if (!zoneId) return
     setLoading(true); setResult(null)
-    const neighborhood = NEIGHBORHOODS.find(n => n.id === form.neighborhoodId)
-    const group = groups[form.neighborhoodId]
+    const neighborhood = zones.find(n => n.id === zoneId)
+    const group = groups[zoneId]
     const matchingDays = []; const dayJobSummaries = {}
     if (group) {
       for (const abbrev of WEEK_ABBREVS) {
@@ -321,21 +362,21 @@ function SmartBookingTab({ jobs }) {
           <input type="text" placeholder="e.g. Sarah Johnson" value={form.clientName} onChange={e => setForm(f => ({ ...f, clientName: e.target.value }))} />
         </div>
         <div className="form-group">
-          <label className="form-label">Street Address (optional)</label>
-          <input type="text" placeholder="e.g. 8840 Autumn Hills Dr" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} />
+          <label className="form-label">Street Address (optional — auto-detects zone)</label>
+          <input type="text" placeholder="e.g. 8840 Autumn Hills Dr, Reno NV 89523" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} />
         </div>
         <div className="form-group">
           <label className="form-label">Neighborhood / Area <span style={{ color: 'var(--danger)' }}>*</span></label>
           <select value={form.neighborhoodId} onChange={e => { setForm(f => ({ ...f, neighborhoodId: e.target.value })); setResult(null) }}>
             <option value="">— Select area —</option>
-            {NEIGHBORHOODS.map(n => <option key={n.id} value={n.id}>{n.label}</option>)}
+            {zones.map(n => <option key={n.id} value={n.id}>{n.label}</option>)}
           </select>
           {form.neighborhoodId && (
             <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ width: 9, height: 9, borderRadius: '50%', background: NEIGHBORHOODS.find(n => n.id === form.neighborhoodId)?.color, display: 'inline-block' }} />
+              <span style={{ width: 9, height: 9, borderRadius: '50%', background: zones.find(n => n.id === form.neighborhoodId)?.color, display: 'inline-block' }} />
               <span className="text-xs text-muted">
                 {groups[form.neighborhoodId]
-                  ? `${groups[form.neighborhoodId].jobs.length} existing job${groups[form.neighborhoodId].jobs.length !== 1 ? 's' : ''} in this area`
+                  ? `${groups[form.neighborhoodId]?.jobs.length} existing job${groups[form.neighborhoodId]?.jobs.length !== 1 ? 's' : ''} in this area`
                   : 'No existing jobs in this area this week'}
               </span>
             </div>
