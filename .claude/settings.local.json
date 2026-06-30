@@ -28,7 +28,11 @@
       "Bash(npx --yes playwright --version)",
       "Bash(npx playwright@latest --version)",
       "Bash(npx playwright@latest test --version)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(npm root *)",
+      "Bash(npm bin *)",
+      "Bash(npm prefix *)",
+      "Bash(/Users/ashleymontgomery/.local/node/bin/vercel whoami *)"
     ]
   }
 }
